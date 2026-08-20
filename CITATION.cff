@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+title: snes-spc7110-python
+message: >-
+  If you use this work, or the states it was settled against, please cite it.
+type: software
+authors:
+  - given-names: Gustavo
+    family-names: Franco
+    alias: gufranco
+repository-code: https://github.com/gufranco/snes-spc7110-python
+url: https://github.com/gufranco/snes-spc7110-python
+abstract: >-
+  A model of the SPC7110 decompressor, the arithmetic coder that expands data on
+  the way out of several late Super Nintendo cartridges. Its probability tables,
+  its context model, and its three output modes are settled against a reference
+  implementation rather than against a description of them.
+keywords:
+  - emulation
+  - super-nintendo
+  - spc7110
+  - decompression
+  - arithmetic-coding
+  - hardware-model
+  - conformance
+license: MIT
+version: 1.0.0

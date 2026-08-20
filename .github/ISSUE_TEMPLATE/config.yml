@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Where do I get a cartridge?
+    url: https://github.com/gufranco/snes-spc7110-python#faq
+    about: Not from here. Dump one you own, and never attach what it contains.
+  - name: The other decompressor
+    url: https://github.com/gufranco/snes-sdd1-python
+    about: Same idea, a different arithmetic coder, and a different cartridge.
