@@ -18,6 +18,8 @@ which is what the reference does and why the tables are here rather than the
 arithmetic that would replace them.
 """
 
+from collections.abc import Sequence
+
 EVOLUTION = (
     (0x5A, 1, 1, 1),
     (0x25, 6, 2, 0),
@@ -130,7 +132,7 @@ _FOUR_PLANE = (
 )
 
 
-def _built(patterns):
+def _built(patterns: Sequence[Sequence[tuple[int, int]]]) -> tuple[tuple[int, ...], ...]:
     return tuple(
         tuple(
             sum(((value >> source) & 1) << target for source, target in pattern)
@@ -145,12 +147,12 @@ MORTON16 = _built(_TWO_PLANE)
 MORTON32 = _built(_FOUR_PLANE)
 
 
-def morton_2x8(data):
+def morton_2x8(data: int) -> int:
     """Two eight bit values woven together, taken apart again."""
     return MORTON16[0][data & 0xFF] + MORTON16[1][(data >> 8) & 0xFF]
 
 
-def morton_4x8(data):
+def morton_4x8(data: int) -> int:
     """Four eight bit values woven together, taken apart again."""
     return (
         MORTON32[0][data & 0xFF]

@@ -5,3 +5,4 @@ node_modules/
 conformance/ref/driver
 conformance/ref/spc7110_bodies.inc
 conformance/ref/spc7110dec.h
+.mypy_cache/

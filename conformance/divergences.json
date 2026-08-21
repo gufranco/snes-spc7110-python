@@ -1,0 +1,54 @@
+{
+  "comment": "Where each fact about this chip stands, given that no document names the part.",
+  "sources": {
+    "document": "None.",
+    "reference": "snes9x, pinned by commit in conformance/pinned.json, built and driven by conformance/build.py.",
+    "recording": "None. No capture from a real SPC7110 is on this machine."
+  },
+  "divergences": [
+    {
+      "id": "no-document-exists-for-this-part",
+      "parts": ["spc7110"],
+      "severity": "high",
+      "status": "open",
+      "documentSays": "Nothing. No datasheet for the SPC7110 was published.",
+      "referenceDoes": "Defines every constant and the whole of the algorithm.",
+      "packageFollows": "reference",
+      "reasoning": "Both upper rungs of the ladder are empty here. Every constant carries verified false for that reason rather than because anybody doubts the value, and the differential run establishes that this decompressor and snes9x agree, which is a real check and is not a measurement of hardware.",
+      "wouldSettleIt": "A datasheet, a die photograph, or a recording taken off a real SPC7110."
+    },
+    {
+      "id": "the-buffer-size-is-not-a-character-size",
+      "parts": ["spc7110"],
+      "severity": "low",
+      "status": "acknowledged",
+      "documentSays": "Nintendo documents an eight bit per dot character as sixty four bytes.",
+      "referenceDoes": "Uses a sixty four byte ring buffer, which is not a character.",
+      "packageFollows": "reference",
+      "reasoning": "The two numbers match and mean different things. Writing it down stops the next reader from citing Nintendo's figure as the source of an internal buffer size, which would be a citation for something nobody documented.",
+      "wouldSettleIt": "A die photograph showing the buffer, or a measurement of where output wraps."
+    },
+    {
+      "id": "agreement-with-the-reference-is-not-hardware",
+      "parts": ["spc7110"],
+      "severity": "high",
+      "status": "open",
+      "documentSays": "Nothing.",
+      "referenceDoes": "Produces the bytes the differential run compares against.",
+      "packageFollows": "reference",
+      "reasoning": "The differential builds the reference from pinned source and drives both with the same input, so a disagreement is real and a agreement means the two programs agree. Where snes9x is wrong this is wrong with it, and nothing here could tell.",
+      "wouldSettleIt": "A recording taken off a real SPC7110: feed a known stream and capture what comes out."
+    },
+    {
+      "id": "nothing-here-is-a-timing-claim",
+      "parts": ["spc7110"],
+      "severity": "medium",
+      "status": "notModelled",
+      "documentSays": "Nothing.",
+      "referenceDoes": "Decodes on demand, as this package does.",
+      "packageFollows": "reference",
+      "reasoning": "How long a decode takes, and whether a console reading the output can outrun it, is not modelled. On real hardware that decides whether a game has to wait.",
+      "wouldSettleIt": "A measurement on a real cartridge, or a datasheet."
+    }
+  ]
+}

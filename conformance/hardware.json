@@ -1,0 +1,58 @@
+{
+  "note": "What this decompressor asserts about the SPC7110 and where each assertion comes from. No manufacturer document for this part is known to exist, so nothing here is verified and the file says so for each constant rather than leaving a reader to infer it from the absence of quotes.",
+  "authority": {
+    "order": [
+      "a manufacturer document, of which there is none",
+      "a recording taken off a real SPC7110, of which there is none on this machine",
+      "the reference implementation, which is where all of this comes from"
+    ],
+    "why": "The SPC7110 was made for Nintendo and no datasheet was published. The algorithm was reconstructed from the silicon or from its output, so the top two rungs are both empty and the third is carrying the package.",
+    "whatIsMissing": "Any document naming this part. Searched on 2026-08-21; nothing was found, and nothing suggests one was ever published."
+  },
+  "facts": {
+    "modes": {
+      "value": [0, 1, 2],
+      "verified": false,
+      "why": "Three decompression modes, producing one, two and four bit planes.",
+      "evidence": "The reference implementation, corroborated by the cartridges that carry this chip using all three.",
+      "howToSettleIt": "A datasheet, or a die photograph of the mode decode."
+    },
+    "contexts": {
+      "value": 32,
+      "verified": false,
+      "why": "How many probability contexts the arithmetic coder keeps.",
+      "evidence": "The reference implementation.",
+      "howToSettleIt": "A datasheet, or a die photograph of the context memory."
+    },
+    "bufferBytes": {
+      "value": 64,
+      "verified": false,
+      "why": "The ring buffer the decompressor emits into before a caller reads from it.",
+      "evidence": "The reference implementation.",
+      "howToSettleIt": "A die photograph, or a measurement showing where output wraps.",
+      "note": "Sixty four is also the size of an eight bit per dot character, and that is a coincidence rather than a derivation: this is an internal ring buffer and its size is not tied to any character format. It is written down because the coincidence is inviting and inviting is how a guess becomes a citation."
+    },
+    "spanFull": {
+      "value": 255,
+      "hex": "0xFF",
+      "verified": false,
+      "why": "The width of the coder's interval before any subdivision.",
+      "evidence": "The reference implementation.",
+      "howToSettleIt": "A datasheet."
+    },
+    "renormaliseBelow": {
+      "value": 127,
+      "hex": "0x7F",
+      "verified": false,
+      "why": "The threshold below which the coder renormalises.",
+      "evidence": "The reference implementation.",
+      "howToSettleIt": "A datasheet."
+    }
+  },
+  "notStated": [
+    "Everything. No manufacturer document for this part is known to exist, so nothing here is verified in the sense the sibling repositories use the word.",
+    "How the chip behaves on a malformed stream. Every implementation guesses and none of the guesses can be checked.",
+    "Anything about timing. How long a decode takes, and whether a console reading the output can outrun it, is unmodelled and unmeasured.",
+    "Whether the three modes are the only three, or the only three any cartridge used."
+  ]
+}

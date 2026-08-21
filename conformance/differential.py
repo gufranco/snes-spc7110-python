@@ -23,7 +23,9 @@ import random
 import struct
 import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
+from typing import override
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -53,7 +55,7 @@ class Usage(Exception):
 
 
 class Options:
-    def __init__(self, seeds=SEEDS, driver=DEFAULT_DRIVER):
+    def __init__(self, seeds: int = SEEDS, driver: Path | str = DEFAULT_DRIVER) -> None:
         self.seeds = seeds
         self.driver = driver
 
@@ -61,7 +63,15 @@ class Options:
 class Case:
     """One stream, one mode, and where to start reading it."""
 
-    def __init__(self, seed, mode, data, offset, index, wanted):
+    def __init__(
+        self,
+        seed: int,
+        mode: int,
+        data: bytes,
+        offset: int,
+        index: int,
+        wanted: int,
+    ) -> None:
         self.seed = seed
         self.mode = mode
         self.data = data
@@ -69,11 +79,12 @@ class Case:
         self.index = index
         self.wanted = wanted
 
-    def __repr__(self):
+    @override
+    def __repr__(self) -> str:
         return f"<Case seed {self.seed} mode {self.mode} offset {self.offset} skip {self.index}>"
 
 
-def cases(seeds=SEEDS):
+def cases(seeds: int = SEEDS) -> list["Case"]:
     """One case per seed, cycling through the modes so every run covers all three."""
     found = []
     for seed in range(seeds):
@@ -92,14 +103,14 @@ def cases(seeds=SEEDS):
     return found
 
 
-def replay(case):
+def replay(case: "Case") -> list[int]:
     """The case through the model."""
     chip = decompressor.Decompressor(case.data)
     chip.start(mode=case.mode, offset=case.offset, index=case.index)
     return list(chip.read(case.wanted))
 
 
-def ask(case, driver):
+def ask(case: "Case", driver: Path | str) -> list[int]:
     """The case through the reference, whose answers decide."""
     done = subprocess.run(
         [driver, str(case.mode), str(case.offset), str(case.index)],
@@ -113,7 +124,9 @@ def ask(case, driver):
     return [int(line, 16) for line in done.stdout.split()]
 
 
-def disagreement(expected, actual):
+def disagreement(
+    expected: Sequence[int], actual: Sequence[int]
+) -> tuple[int, int | None, int | None] | None:
     """The first byte the two answers differ on, or nothing."""
     for index in range(max(len(expected), len(actual))):
         theirs = expected[index] if index < len(expected) else None
@@ -123,7 +136,7 @@ def disagreement(expected, actual):
     return None
 
 
-def options(argv):
+def options(argv: Sequence[str]) -> "Options":
     chosen = Options()
     rest = list(argv)
     while rest:
@@ -140,7 +153,7 @@ def options(argv):
     return chosen
 
 
-def run(argv):
+def run(argv: Sequence[str]) -> int:
     chosen = options(argv)
     if not Path(chosen.driver).exists():
         print(f"no reference driver at {chosen.driver}; build it first")
@@ -162,7 +175,7 @@ def run(argv):
     return 1 if failed else 0
 
 
-def main(argv):
+def main(argv: Sequence[str]) -> int:
     try:
         return run(argv)
     except Usage as error:

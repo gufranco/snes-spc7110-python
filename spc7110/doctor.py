@@ -23,7 +23,9 @@ import hashlib
 import json
 import platform
 import sys
+from collections.abc import Callable, Sequence
 from pathlib import Path
+from typing import Any, override
 
 from . import decompressor, models
 from .version import VERSION
@@ -49,29 +51,30 @@ SHOWN = 8
 class Finding:
     """One thing that was looked at, and what was there."""
 
-    def __init__(self, name, ok, detail, advice=None):
+    def __init__(self, name: str, ok: bool, detail: str, advice: str | None = None) -> None:
         self.name = name
         self.ok = ok
         self.detail = detail
         self.advice = advice
 
     @property
-    def line(self):
+    def line(self) -> str:
         """The one-line form, which is what a reader scans."""
         return f"  {'ok  ' if self.ok else '   !'}  {self.name}: {self.detail}"
 
     @property
-    def report(self):
+    def report(self) -> str:
         """The same, with what to do about it when there is something to do."""
         if self.ok or not self.advice:
             return self.line
         return f"{self.line}\n         {self.advice}"
 
-    def __repr__(self):
+    @override
+    def __repr__(self) -> str:
         return f"<Finding {self.name} {'ok' if self.ok else 'not ok'}>"
 
 
-def _python():
+def _python() -> "Finding":
     return Finding(
         "python",
         sys.version_info[:2] >= OLDEST_PYTHON,
@@ -80,15 +83,15 @@ def _python():
     )
 
 
-def _package():
+def _package() -> "Finding":
     return Finding("spc7110", True, f"version {VERSION}")
 
 
-def _default_build(name, source):
+def _default_build(name: str, source: bytes | bytearray) -> Any:
     return models.describe(name).build(source)
 
 
-def _mode(name, build):
+def _mode(name: str, build: Callable[..., Any]) -> "Finding":
     """Whether that mode builds, saying exactly what stopped it if not."""
     try:
         build(name, KNOWN)
@@ -104,7 +107,7 @@ def _mode(name, build):
     return Finding(name, True, f"mode {described.number}, {described.depth} bits per pixel")
 
 
-def _known(build):
+def _known(build: Callable[..., Any]) -> "Finding":
     """What a stream nobody owns decodes to here, printed so two builds can be compared.
 
     The bytes are the point. A report that says the numbers disagree is not
@@ -129,7 +132,7 @@ def _known(build):
     )
 
 
-def _empty(build):
+def _empty(build: Callable[..., Any]) -> "Finding":
     """That a decompressor with nothing to decompress is refused.
 
     A decoder that accepts an empty stream has to invent what it returns, and
@@ -155,7 +158,7 @@ def _empty(build):
     )
 
 
-def _reference(where):
+def _reference(where: Path | str) -> "Finding":
     """Which implementation this is held to, and at which commit.
 
     Two people comparing against two commits of the same reference will disagree
@@ -195,7 +198,7 @@ def _reference(where):
     )
 
 
-def _driver(where):
+def _driver(where: Path | str) -> "Finding":
     """Whether the reference is built, since its absence is silent otherwise.
 
     The differential check builds somebody else's implementation and decodes the
@@ -213,7 +216,12 @@ def _driver(where):
     )
 
 
-def examine(build=_default_build, pin=PIN, driver=DRIVER, start=decompressor.Decompressor):
+def examine(
+    build: Callable[..., Any] = _default_build,
+    pin: Path | str = PIN,
+    driver: Path | str = DRIVER,
+    start: Callable[..., Any] = decompressor.Decompressor,
+) -> list["Finding"]:
     """Everything worth looking at on this machine, in the order a reader wants it."""
     found = [_python(), _package()]
     found.extend(_mode(name, build) for name in sorted(models.MODES))
@@ -224,7 +232,7 @@ def examine(build=_default_build, pin=PIN, driver=DRIVER, start=decompressor.Dec
     return found
 
 
-def report(found):
+def report(found: list["Finding"]) -> list[str]:
     """The lines a person pastes into an issue."""
     unwell = [one for one in found if not one.ok]
     lines = [f"spc7110 {VERSION} on {platform.python_version()}, {platform.system()}", ""]
@@ -237,7 +245,11 @@ def report(found):
     return lines
 
 
-def main(argv=(), examine=examine, say=print):
+def main(
+    argv: Sequence[str] = (),
+    examine: Callable[..., list["Finding"]] = examine,
+    say: Callable[[str], None] = print,
+) -> int:
     found = examine()
     for line in report(found):
         say(line)

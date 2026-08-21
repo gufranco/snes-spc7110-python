@@ -33,6 +33,8 @@ byte, because the modes produce whole bytes or whole tiles and cannot stop
 partway.
 """
 
+from typing import override
+
 from . import tables
 
 MODES = (0, 1, 2)
@@ -67,23 +69,24 @@ class Context:
 
     __slots__ = ("index", "invert")
 
-    def __init__(self, index=0, invert=0):
+    def __init__(self, index: int = 0, invert: int = 0) -> None:
         self.index = index
         self.invert = invert
 
-    def __repr__(self):
+    @override
+    def __repr__(self) -> str:
         return f"<Context row {self.index} invert {self.invert}>"
 
 
 class Decompressor:
     """One decompressor, reading a compressed stream and handing back bytes."""
 
-    def __init__(self, source):
+    def __init__(self, source: bytes | bytearray) -> None:
         if not source:
             raise Empty("a decompressor needs something to decompress")
         self.source = bytes(source)
         self.offset = 0
-        self.mode = None
+        self.mode: int | None = None
         self.contexts = [Context() for _ in range(CONTEXTS)]
         self.buffer = bytearray(BUFFER_BYTES)
         self.read_at = 0
@@ -91,7 +94,7 @@ class Decompressor:
         self.held = 0
         self._clear_working()
 
-    def _clear_working(self):
+    def _clear_working(self) -> None:
         self.value = 0
         self.window = 0
         self.window_bits = 0
@@ -100,17 +103,17 @@ class Decompressor:
         self.out_high = 0
         self.inverts = 0
         self.lps = 0
-        self.order = []
+        self.order: list[int] = []
         self.tile = bytearray()
 
-    def take(self):
+    def take(self) -> int:
         """One byte of the compressed stream, wrapping when it runs off the end."""
         self.offset %= len(self.source)
         value = self.source[self.offset]
         self.offset += 1
         return value
 
-    def start(self, mode, offset, index):
+    def start(self, mode: int, offset: int, index: int) -> "Decompressor":
         """Point the decoder at a stream and run it forward to an output position."""
         if mode not in MODES:
             raise UnknownMode(f"{mode} is not a mode this chip has; it has {MODES}")
@@ -136,12 +139,12 @@ class Decompressor:
             self.take_byte()
         return self
 
-    def _emit(self, value):
+    def _emit(self, value: int) -> None:
         self.buffer[self.write_at] = value & 0xFF
         self.write_at = (self.write_at + 1) & (BUFFER_BYTES - 1)
         self.held += 1
 
-    def take_byte(self):
+    def take_byte(self) -> int:
         """One decompressed byte, filling the buffer when it has run out."""
         if self.held == 0:
             if self.mode is None:
@@ -152,14 +155,14 @@ class Decompressor:
         self.held -= 1
         return value
 
-    def read(self, count):
+    def read(self, count: int) -> bytes:
         """That many decompressed bytes."""
         return bytes(self.take_byte() for _ in range(count))
 
-    def _probability(self, context):
+    def _probability(self, context: int) -> int:
         return tables.EVOLUTION[self.contexts[context].index][tables.PROBABILITY]
 
-    def _symbol(self, context):
+    def _symbol(self, context: int) -> tuple[int, int]:
         """One symbol, and how far the span had to be renormalised to get it."""
         probability = self._probability(context)
         if self.value <= self.span - probability:
@@ -182,7 +185,7 @@ class Decompressor:
                 self.window_bits = 8
         return flag, shift
 
-    def _advance(self, context, flag, shift):
+    def _advance(self, context: int, flag: int, shift: int) -> int:
         """Fold the symbol into the history and move the context along."""
         state = self.contexts[context]
         invert = state.invert
@@ -197,12 +200,12 @@ class Decompressor:
             state.index = row[tables.NEXT_MPS]
         return invert
 
-    def _rotate(self, value):
+    def _rotate(self, value: int) -> None:
         """Move a colour to the front of the recency list, keeping the rest in order."""
         self.order.remove(value)
         self.order.insert(0, value)
 
-    def _mode0(self):
+    def _mode0(self) -> None:
         while self.held < BUFFER_BYTES // 2:
             for bit in range(8):
                 mask = (1 << (bit & 3)) - 1
@@ -216,7 +219,7 @@ class Decompressor:
                 self._advance(context, flag, shift)
             self._emit(self.out)
 
-    def _mode1(self):
+    def _mode1(self) -> None:
         while self.held < BUFFER_BYTES // 2:
             for _ in range(8):
                 a = (self.out >> 2) & 3
@@ -241,7 +244,7 @@ class Decompressor:
             self._emit(data >> 8)
             self._emit(data)
 
-    def _mode2(self):
+    def _mode2(self) -> None:
         while self.held < BUFFER_BYTES // 2:
             for _ in range(8):
                 a = self.out & 15
@@ -277,5 +280,6 @@ class Decompressor:
                     self._emit(value)
                 self.tile = bytearray()
 
-    def __repr__(self):
+    @override
+    def __repr__(self) -> str:
         return f"<Decompressor mode {self.mode} at {self.offset} holding {self.held}>"
