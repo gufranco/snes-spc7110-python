@@ -117,7 +117,7 @@ jobs:
       # gate needs, so the driver is built here as well as in the conformance
       # job. Skipping them would leave the gate measuring less than it claims.
       - name: Build the driver the comparison tests need
-        run: python conformance/build.py
+        run: python -m conformance.build
 
       - name: Run every test file, under coverage
         run: |
@@ -158,7 +158,7 @@ jobs:
           key: reference-${{ steps.pin.outputs.commit }}
 
       - name: Build the driver around them
-        run: python conformance/build.py
+        run: python -m conformance.build
 
       # A pull request runs a fifth of the streams for a quick answer. A push to
       # main runs all two hundred, because that is the number the claim rests on.
@@ -169,5 +169,18 @@ jobs:
           else
             seeds=200
           fi
-          python conformance/differential.py --seeds "${seeds}"
+          python -m conformance.differential --seeds "${seeds}"
         shell: bash
+
+  speed:
+    name: Throughput
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: The decoder must still run faster than the floor
+        run: python -m conformance.speed

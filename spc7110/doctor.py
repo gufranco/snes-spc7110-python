@@ -27,10 +27,13 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any, override
 
-from . import decompressor, models
-from .version import VERSION
-
 ROOT = Path(__file__).resolve().parent.parent
+
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from spc7110 import decompressor, errors, models  # noqa: E402
+from spc7110.version import VERSION  # noqa: E402
 
 PIN = ROOT / "conformance" / "pinned.json"
 
@@ -141,7 +144,7 @@ def _empty(build: Callable[..., Any]) -> "Finding":
     """
     try:
         build(b"")
-    except decompressor.Empty:
+    except errors.Empty:
         return Finding("empty stream", True, "refused")
     except Exception as trouble:
         return Finding(

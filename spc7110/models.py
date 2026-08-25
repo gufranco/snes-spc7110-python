@@ -13,14 +13,19 @@ from collections.abc import Sequence
 from typing import Any, override
 
 from .decompressor import Decompressor
-
-
-class UnknownMode(Exception):
-    pass
+from .errors import UnknownMode, UnknownModelError
 
 
 class Mode:
     """One mode: what it produces, and how to start a decompressor on it."""
+
+    __slots__ = (
+        "aliases",
+        "depth",
+        "name",
+        "number",
+        "summary",
+    )
 
     def __init__(
         self,
@@ -99,4 +104,106 @@ def describe(name: str | int) -> "Mode":
     found = _BY_NUMBER.get(name) if isinstance(name, int) else _BY_ALIAS.get(_normalise(name))
     if found is None:
         raise UnknownMode(f"{name} is not a mode this chip has; it has {', '.join(sorted(MODES))}")
+    return found
+
+
+class Model:
+    """One part: what it is, and what a caller can ask it to do.
+
+    A part rather than a mode. The three modes are how a caller asks for one
+    decompression, not three chips: one SPC7110 was made and it does all three.
+    The family's catalogue is a catalogue of parts, so it holds one entry, and
+    the mode is an argument to the call rather than a name in the catalogue.
+    """
+
+    __slots__ = ("aliases", "modes", "name", "summary")
+
+    def __init__(self, name: str, summary: str, aliases: Sequence[str] = ()) -> None:
+        self.name = name
+        self.summary = summary
+        self.aliases = tuple(aliases)
+        self.modes = tuple(sorted(MODES))
+
+    def build(self, **options: Any) -> "Chip":
+        return Chip(self.name, **options)
+
+    @override
+    def __repr__(self) -> str:
+        return f"<Model {self.name}, {len(self.modes)} modes>"
+
+
+class Chip:
+    """The chip as a thing a caller holds, rather than a function they call."""
+
+    __slots__ = ("model",)
+
+    def __init__(self, model: str) -> None:
+        self.model = model
+
+    def decompress(
+        self,
+        source: bytes | bytearray,
+        mode: str | int,
+        offset: int = 0,
+        index: int = 0,
+    ) -> Decompressor:
+        """Start a decompression of that stream in that mode.
+
+        The mode comes second because it is the thing that changes per call. It
+        is looked up through the same catalogue a caller would use, so a mode
+        this chip does not have is refused here rather than several bytes into a
+        decode.
+        """
+        started: Decompressor = describe(mode).build(source, offset=offset, index=index)
+        return started
+
+    def reset(self) -> "Chip":
+        """The console's reset line, which this part carries no state across.
+
+        Every decompression is started from its own header and its own context
+        table, and nothing survives from one to the next. So this changes
+        nothing, and it exists because a caller driving a board resets every
+        part on it and should not have to special-case which ones hold state.
+        """
+        return self
+
+    @override
+    def __repr__(self) -> str:
+        return f"<Chip {self.model}>"
+
+
+_PARTS = (
+    Model(
+        name="spc7110",
+        summary=(
+            "The SPC7110's decompressor, one of three things the chip does. The other "
+            "two, a real-time clock and a memory mapper, have homes of their own."
+        ),
+        aliases=("spc-7110", "epsonspc7110"),
+    ),
+)
+
+MODELS = {part.name: part for part in _PARTS}
+
+_PART_BY_ALIAS = {}
+for _part in _PARTS:
+    _PART_BY_ALIAS[_part.name] = _part
+    for _name in _part.aliases:
+        _PART_BY_ALIAS[_name.replace("-", "")] = _part
+
+DEFAULT_MODEL = "spc7110"
+
+
+def describe_part(name: str) -> Model:
+    """The part of that name, however it happens to be written.
+
+    Named apart from `describe` because this catalogue and the mode catalogue
+    answer different questions, and one function that guessed which was meant
+    would answer the wrong one for a caller who wrote a mode number.
+    """
+    found = _PART_BY_ALIAS.get(_normalise(name))
+    if found is None:
+        raise UnknownModelError(
+            f"{name} is not a part this package covers; it has {', '.join(sorted(MODELS))}"
+        )
     return found

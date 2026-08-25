@@ -23,46 +23,90 @@
   <a href="https://github.com/gufranco/snes-spc7110-python/issues">Issues</a>
 </p>
 
-**3** modes · **200** streams compared against the reference · **102,400** bytes, **0** disagreements · **107** tests · **100%** statement and branch coverage
+**3** modes · **200** streams compared against the reference · **102,400** bytes, **0** disagreements · **383** tests · **100%** statement and branch coverage · no dependencies
 
 ```python
-from spc7110 import describe
+from spc7110 import Chip
 
-chip = describe("4bpp").build(stream)
-chip.read(64)
+stream = bytes(range(64))
+
+started = Chip().decompress(stream, "4bpp")
+len(started.read(64))
+
+# 64
 ```
 
-## Quick start
-
-### Prerequisites
-
-| Tool | Version | Install |
-|:-----|:--------|:--------|
-| Python | 3.12 or newer | [python.org](https://www.python.org/downloads/) |
-| A C++ compiler | any recent | only for running the conformance comparison |
-
-### Install
-
+## Install
 ```bash
 pip install git+https://github.com/gufranco/snes-spc7110-python.git
 ```
 
-### Decompress something
+Python 3.12 or newer. Nothing else.
+
+## The interface
+Everything a caller touches. Nothing else is public.
+
+| Name | What it is |
+|:--|:--|
+| `Chip(model)` | A part of that model |
+| `chip.decompress(source, mode, offset, index)` | Start a decompression in that mode |
+| `Decompressor` | What that hands back: `read(count)` takes bytes off it |
+| `describe(mode)`, `MODES`, `Mode` | The mode catalogue, by name or by number |
+| `describe_part(model)`, `MODELS`, `Model` | The part catalogue |
+| `Context`, `CONTEXTS` | The probability contexts, and how many there are |
+| `UnknownModelError`, `UnknownMode`, `Empty` | Everything a caller can catch |
+
+`Chip` takes the model first, which is the argument every member of the family
+takes first. The mode is not a model: three modes exist and one chip does all
+three, so the mode is an argument to `decompress` rather than a name in the part
+catalogue.
+
+The one part answers to more than one name, so a caller writing what a board
+silkscreen calls it gets the part rather than a refusal:
+
+| Name | Also answers to |
+|:--|:--|
+| `spc7110` | `spc-7110`, `epsonspc7110` |
 
 ```python
-from spc7110 import Decompressor
+from spc7110 import Chip
 
-chip = Decompressor(stream)
-chip.start(mode=2, offset=0, index=0)
-tile = chip.read(32)
+chip = Chip("spc7110")
+started = chip.decompress(bytes(64), "4bpp")
+
+len(started.read(32))
+
+# 32
 ```
 
-`offset` is where in the compressed stream to begin. `index` is how many output
-bytes to throw away first, which is how the cartridge reaches the middle of a
-block without decompressing it into memory.
+A part name no chip answers to is refused rather than quietly building the only
+one there is:
+
+```python
+from spc7110 import Chip, UnknownModelError
+
+try:
+    Chip("spc7120")
+except UnknownModelError as refused:
+    print(str(refused).split(";")[0])
+
+# spc7120 is not a part this package covers
+```
+
+And so is a mode the chip does not have:
+
+```python
+from spc7110 import Chip, UnknownMode
+
+try:
+    Chip().decompress(bytes(64), "16bpp")
+except UnknownMode as refused:
+    print(type(refused).__name__)
+
+# UnknownMode
+```
 
 ## The three modes
-
 There is one arithmetic decoder underneath. The mode decides how many bits a
 symbol carries and what happens to it afterwards.
 
@@ -92,8 +136,7 @@ the coder produces is an index into that list, so the same number means a
 different colour from one pixel to the next. A model that sorts, or that keeps
 the list in value order, decodes the first few pixels correctly and then drifts.
 
-## How this is checked
-
+## Is it right
 Every mode is compared against the implementation every emulator already agrees
 with, over streams generated from a seed.
 
@@ -105,8 +148,8 @@ with, over streams generated from a seed.
 | Reference | [snes9x](https://github.com/snes9xgit/snes9x), pinned by commit |
 
 ```bash
-python conformance/build.py
-python conformance/differential.py
+python -m conformance.build
+python -m conformance.differential
 ```
 
 ```
@@ -121,7 +164,7 @@ the decompressor out of the file it lives in, using markers that come from the
 pin, so a file whose text has moved fails loudly rather than yielding something
 else.
 
-## Why random bytes are a real test
+### Why random bytes are a real test
 
 A decompressor needs something to decompress, and the streams this chip was made
 for are cartridge graphics. Those are the protected work and they do not ship
@@ -143,7 +186,25 @@ If you own a cartridge, the same runner takes your own stream and compares it th
 same way. That check stays on your machine, which is why the shipped one is built
 this way.
 
-## Layout
+**Open questions** are listed with the measurement that would close each one:
+[`OPEN-QUESTIONS.md`](OPEN-QUESTIONS.md). Where two sources part, both are kept
+in [`conformance/divergences.json`](conformance/divergences.json) with what would
+settle it.
+
+## Working on it
+```bash
+python -m coverage erase
+for file in $(find spc7110 conformance -name '*.test.py' | sort); do
+  python -m coverage run -a "$file"
+done
+python -m coverage report
+```
+
+`python3 spc7110/doctor.py` says what is actually on this machine. It is run as a file rather than with `-m` so that it still runs when the package itself will not import, which is the case it exists for.
+
+[`AGENTS.md`](AGENTS.md) is the document for an agent working here. [`FAMILY.md`](FAMILY.md) is the standard this repository shares with the rest of the family, kept identical in every member.
+
+### Layout
 
 | File | Holds |
 |:-----|:------|
@@ -153,7 +214,7 @@ this way.
 | [`conformance/differential.py`](conformance/differential.py) | The runner that holds it to the reference |
 | [`conformance/build.py`](conformance/build.py) | Fetches the pinned reference and lifts the chip out of it |
 
-## For contributors and reviewers
+### For contributors and reviewers
 
 ### Running the tests
 
@@ -176,7 +237,7 @@ Every case comes from a seed and the runner prints the seed of any that
 disagreed, so it can be regenerated exactly:
 
 ```python
-import differential
+from conformance import differential
 
 case = differential.cases(seeds=64)[63]
 differential.replay(case)
@@ -204,7 +265,7 @@ differential.replay(case)
 - The buffer refills half of itself at a time rather than a byte at a time,
   because the modes produce whole bytes or whole tiles and cannot stop partway.
 
-## When something is wrong
+### When something is wrong
 
 ```bash
 python3 -m spc7110.doctor
@@ -216,7 +277,7 @@ check that fails says what it saw. A check that itself throws is reported as wha
 it threw rather than taking the report down with it. Paste all of it into an
 issue.
 
-## Contributing
+### Contributing
 
 Measurements first. [CONTRIBUTING.md](CONTRIBUTING.md) has the gates a change is
 expected to pass, [SECURITY.md](SECURITY.md) says what belongs in a private
@@ -226,14 +287,25 @@ project is discussed.
 Never attach a copyrighted file, and never link to somewhere one can be
 downloaded. A digest identifies a file without carrying it.
 
-## Citing this
+## References
+This repository carries no documents and no cartridge data. Nobody published a
+document for this part: the top rung of the authority ladder is empty here and
+[`conformance/hardware.json`](conformance/hardware.json) says so rather than
+promoting the rung below it.
 
+| Source | Used for |
+|:-------|:---------|
+| The reference decompressor, pinned by commit and by extract in [`conformance/pinned.json`](conformance/pinned.json) | Every output value, which nothing else on this machine can produce |
+
+The reference is pinned by extract as well as by commit, so a check cannot start
+comparing against a different implementation without the pin changing first.
+
+## Citing this
 [CITATION.cff](CITATION.cff) is kept in step with the released version by the
 same script that stamps the package, so the version it names is the version that
 shipped.
 
-## Licence
-
+## License
 [MIT](LICENSE).
 
 The reference implementation is a separate work under its own licence, fetched at

@@ -36,6 +36,7 @@ partway.
 from typing import override
 
 from . import tables
+from .errors import Empty, UnknownMode
 
 MODES = (0, 1, 2)
 
@@ -56,14 +57,6 @@ MODE2_COLOURS = 16
 MODE2_TILE_BYTES = 16
 
 
-class UnknownMode(Exception):
-    pass
-
-
-class Empty(Exception):
-    pass
-
-
 class Context:
     """One context: which row of the evolution table, and which symbol is likelier."""
 
@@ -80,6 +73,27 @@ class Context:
 
 class Decompressor:
     """One decompressor, reading a compressed stream and handing back bytes."""
+
+    __slots__ = (
+        "buffer",
+        "contexts",
+        "held",
+        "inverts",
+        "lps",
+        "mode",
+        "offset",
+        "order",
+        "out",
+        "out_high",
+        "read_at",
+        "source",
+        "span",
+        "tile",
+        "value",
+        "window",
+        "window_bits",
+        "write_at",
+    )
 
     def __init__(self, source: bytes | bytearray) -> None:
         if not source:

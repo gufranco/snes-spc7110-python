@@ -6,7 +6,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from spc7110 import decompressor
+from spc7110 import decompressor, errors
 
 
 def stream(seed: int = 1, length: int = 4096) -> bytes:
@@ -40,7 +40,7 @@ class SourceTest(unittest.TestCase):
         self.assertEqual(found.take(), 0x22)
 
     def test_a_source_with_nothing_in_it_is_refused(self) -> None:
-        with self.assertRaises(decompressor.Empty):
+        with self.assertRaises(errors.Empty):
             decompressor.Decompressor(b"")
 
 
@@ -54,7 +54,7 @@ class ModeTest(unittest.TestCase):
     def test_a_mode_the_chip_does_not_have_is_refused(self) -> None:
         found = decompressor.Decompressor(stream())
 
-        with self.assertRaises(decompressor.UnknownMode):
+        with self.assertRaises(errors.UnknownMode):
             found.start(mode=3, offset=0, index=0)
 
     def test_the_modes_disagree_about_the_same_stream(self) -> None:

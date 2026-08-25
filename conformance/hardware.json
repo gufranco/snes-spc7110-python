@@ -7,7 +7,11 @@
       "the reference implementation, which is where all of this comes from"
     ],
     "why": "The SPC7110 was made for Nintendo and no datasheet was published. The algorithm was reconstructed from the silicon or from its output, so the top two rungs are both empty and the third is carrying the package.",
-    "whatIsMissing": "Any document naming this part. Searched on 2026-08-21; nothing was found, and nothing suggests one was ever published."
+    "whatIsMissing": "Any document naming this part. Searched on 2026-08-21; nothing was found, and nothing suggests one was ever published.",
+    "comparedAgainst": {
+      "runner": "conformance/differential.py",
+      "what": "The reference decompressor, built from a commit and a set of extracts both pinned in conformance/pinned.json, asked to expand 200 streams of random bytes across all three modes: 102,400 bytes compared, none of them produced by this model."
+    }
   },
   "facts": {
     "modes": {
@@ -47,6 +51,12 @@
       "why": "The threshold below which the coder renormalises.",
       "evidence": "The reference implementation.",
       "howToSettleIt": "A datasheet."
+    },
+    "resetLine": {
+      "value": "nothing, because this part carries no state between decompressions",
+      "verified": false,
+      "evidence": "Not a claim about a pin. Every decompression is started from its own header and its own context table, and nothing survives from one to the next, so there is no state a reset could clear. What the real part's reset pin does to its internal registers is not known and is not modelled.",
+      "howToSettleIt": "A capture of the cartridge bus across a console reset part-way through a decompression."
     }
   },
   "notStated": [
@@ -54,5 +64,6 @@
     "How the chip behaves on a malformed stream. Every implementation guesses and none of the guesses can be checked.",
     "Anything about timing. How long a decode takes, and whether a console reading the output can outrun it, is unmodelled and unmeasured.",
     "Whether the three modes are the only three, or the only three any cartridge used."
-  ]
+  ],
+  "documents": {}
 }
