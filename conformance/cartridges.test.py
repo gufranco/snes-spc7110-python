@@ -302,6 +302,7 @@ class ReadOneTest(unittest.TestCase):
 
         found = cartridges.read_one(bytes(image))
 
+        assert found is not None
         self.assertEqual((found["streams"], found["baseFrom"]), (10, "three immediate loads"))
 
     def test_a_cartridge_naming_no_base_yields_nothing(self) -> None:
