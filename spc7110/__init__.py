@@ -2,7 +2,7 @@
 
     from spc7110 import describe
 
-    chip = describe("4bpp").build(stream)
+    chip = models.mode_named("4bpp").build(stream)
     chip.read(64)
 
 One arithmetic decoder underneath, with a mode that decides how many bits a
@@ -15,7 +15,7 @@ from . import models as models
 from . import tables as tables
 from .decompressor import CONTEXTS, Context, Decompressor
 from .errors import Empty, UnknownMode, UnknownModelError
-from .models import DEFAULT_MODEL, MODELS, MODES, Mode, Model, describe, describe_part
+from .models import MODELS, MODES, Mode, Model, mode_named
 from .version import VERSION
 
 __version__ = VERSION
@@ -23,7 +23,7 @@ __version__ = VERSION
 from typing import Any
 
 
-def Chip(model: str = DEFAULT_MODEL, **options: Any) -> models.Chip:  # noqa: N802
+def Chip(model: str | None = None, **options: Any) -> models.Chip:  # noqa: N802
     """A chip of the named model, sharing one interface across the family.
 
     The model comes first because it is the thing a caller always knows. One
@@ -35,12 +35,11 @@ def Chip(model: str = DEFAULT_MODEL, **options: Any) -> models.Chip:  # noqa: N8
     the mode is an argument to `decompress` rather than a name in this
     catalogue.
     """
-    return describe_part(model).build(**options)
+    return models.lookup(model).build(**options)
 
 
 __all__ = [
     "CONTEXTS",
-    "DEFAULT_MODEL",
     "MODELS",
     "MODES",
     "Chip",
@@ -52,6 +51,5 @@ __all__ = [
     "UnknownMode",
     "UnknownModelError",
     "__version__",
-    "describe",
-    "describe_part",
+    "mode_named",
 ]

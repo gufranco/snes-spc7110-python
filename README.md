@@ -4,14 +4,14 @@ All three modes of the SPC7110's decompressor, held to the chip's own reference 
 
 [![CI](https://github.com/gufranco/snes-spc7110-python/actions/workflows/ci.yml/badge.svg)](https://github.com/gufranco/snes-spc7110-python/actions/workflows/ci.yml)
 
-**3** modes, **200** streams compared against the reference, **102,400** bytes, **0** disagreements, **465** tests, **100%** statement and branch coverage, no dependencies
+**3** modes, **200** streams compared against the reference, **102,400** bytes, **0** disagreements, **471** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 from spc7110 import Chip
 
 stream = bytes(range(64))
 
-started = Chip().decompress(stream, "4bpp")
+started = Chip("spc7110").decompress(stream, "4bpp")
 len(started.read(64))
 
 # 64
@@ -29,11 +29,11 @@ Everything a caller touches. Nothing else is public.
 
 | Name | What it is |
 |:--|:--|
-| `Chip(model)` | A part of that model |
+| `Chip(model)` | A part of that model. The model is required and there is no default; naming none raises and lists every model |
 | `chip.decompress(source, mode, offset, index)` | Start a decompression in that mode |
 | `Decompressor` | What that hands back: `read(count)` takes bytes off it |
-| `describe(mode)`, `MODES`, `Mode` | The mode catalogue, by name or by number |
-| `describe_part(model)`, `MODELS`, `Model` | The part catalogue |
+| `mode_named(mode)`, `MODES`, `Mode` | The mode a name or a number means, and the catalogue |
+| `MODELS`, `Model` | Every part this package covers, by the name it goes by |
 | `Context`, `CONTEXTS` | The probability contexts, and how many there are |
 | `UnknownModelError`, `UnknownMode`, `Empty` | Everything a caller can catch |
 
@@ -80,7 +80,7 @@ And so is a mode the chip does not have:
 from spc7110 import Chip, UnknownMode
 
 try:
-    Chip().decompress(bytes(64), "16bpp")
+    Chip("spc7110").decompress(bytes(64), "16bpp")
 except UnknownMode as refused:
     print(type(refused).__name__)
 
@@ -98,10 +98,10 @@ symbol carries and what happens to it afterwards.
 | 2 | `4bpp` | Four bits a pixel | The same over sixteen colours, and a whole tile is buffered before it is handed back |
 
 ```python
-from spc7110 import describe
+from spc7110 import mode_named
 
-describe("2bpp").number  # 1
-describe(2).name  # '4bpp'
+mode_named("2bpp").number  # 1
+mode_named(2).name  # '4bpp'
 ```
 
 Two things in the decoder look like mistakes and are not.

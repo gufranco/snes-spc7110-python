@@ -91,7 +91,7 @@ def _package() -> "Finding":
 
 
 def _default_build(name: str, source: bytes | bytearray) -> Any:
-    return models.describe(name).build(source)
+    return models.mode_named(name).build(source)
 
 
 def _mode(name: str, build: Callable[..., Any]) -> "Finding":
@@ -106,7 +106,7 @@ def _mode(name: str, build: Callable[..., Any]) -> "Finding":
             "this is the decoder failing to start rather than anything to do with"
             " a reference; the line above is what it said",
         )
-    described = models.describe(name)
+    described = models.mode_named(name)
     return Finding(name, True, f"mode {described.number}, {described.depth} bits per pixel")
 
 

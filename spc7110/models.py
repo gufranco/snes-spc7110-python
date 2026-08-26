@@ -99,8 +99,14 @@ def _normalise(name: str | int) -> str:
     return str(name).strip().lower().replace("-", "").replace("_", "").replace(" ", "")
 
 
-def describe(name: str | int) -> "Mode":
-    """The mode of that name or number, however it happens to be written."""
+def mode_named(name: str | int) -> "Mode":
+    """The mode of that name or number, however it happens to be written.
+
+    Named for what it hands back. A mode is not a part and is not built by the
+    constructor, so it keeps a resolver of its own; MODES is the catalogue and
+    this is what turns the names and numbers people write into one of its
+    entries.
+    """
     found = _BY_NUMBER.get(name) if isinstance(name, int) else _BY_ALIAS.get(_normalise(name))
     if found is None:
         raise UnknownMode(f"{name} is not a mode this chip has; it has {', '.join(sorted(MODES))}")
@@ -154,7 +160,7 @@ class Chip:
         this chip does not have is refused here rather than several bytes into a
         decode.
         """
-        started: Decompressor = describe(mode).build(source, offset=offset, index=index)
+        started: Decompressor = mode_named(mode).build(source, offset=offset, index=index)
         return started
 
     def reset(self) -> "Chip":
@@ -194,13 +200,26 @@ for _part in _PARTS:
 DEFAULT_MODEL = "spc7110"
 
 
-def describe_part(name: str) -> Model:
+def lookup(name: str | None) -> Model:
     """The part of that name, however it happens to be written.
 
-    Named apart from `describe` because this catalogue and the mode catalogue
-    answer different questions, and one function that guessed which was meant
-    would answer the wrong one for a caller who wrote a mode number.
+    Naming nothing is refused rather than filled in. A default would be the one
+    implicit thing in the call that builds a part, and it is worst where it looks
+    most harmless: a caller who learns to leave the model out against a member
+    covering one part writes the same call against a member covering sixteen.
+
+    Kept apart from the mode resolver because the two catalogues answer different
+    questions, and one function that guessed which was meant would answer the
+    wrong one for a caller who wrote a mode number.
+
+    Not exported from the package. What a caller wants is the part, and the part
+    carries its own model.
     """
+    if name is None:
+        raise UnknownModelError(
+            "no model was named, and this package will not choose one for you."
+            f" Name one of: {', '.join(sorted(MODELS))}"
+        )
     found = _PART_BY_ALIAS.get(_normalise(name))
     if found is None:
         raise UnknownModelError(
