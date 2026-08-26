@@ -1,29 +1,10 @@
-<div align="center">
+# SPC7110 Decompressor
 
-<h1>SPC7110 Decompressor</h1>
-
-<strong>All three modes of the SPC7110's decompressor, held to the chip's own reference implementation.</strong>
-
-<br>
-<br>
+All three modes of the SPC7110's decompressor, held to the chip's own reference implementation.
 
 [![CI](https://github.com/gufranco/snes-spc7110-python/actions/workflows/ci.yml/badge.svg)](https://github.com/gufranco/snes-spc7110-python/actions/workflows/ci.yml)
-[![Conformance](https://img.shields.io/badge/conformance-102%2C400%20bytes-brightgreen)](#how-this-is-checked)
-[![Coverage](https://img.shields.io/badge/coverage-100%25%20statement%20%2B%20branch-brightgreen)](#tests)
-[![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.14-blue)](pyproject.toml)
-[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-</div>
-
-<p align="center">
-  <a href="#quick-start">Quick start</a> &nbsp;|&nbsp;
-  <a href="#the-three-modes">The modes</a> &nbsp;|&nbsp;
-  <a href="#how-this-is-checked">How this is checked</a> &nbsp;|&nbsp;
-  <a href="#why-random-bytes-are-a-real-test">Why random bytes</a> &nbsp;|&nbsp;
-  <a href="https://github.com/gufranco/snes-spc7110-python/issues">Issues</a>
-</p>
-
-**3** modes · **200** streams compared against the reference · **102,400** bytes, **0** disagreements · **465** tests · **100%** statement and branch coverage · no dependencies
+**3** modes, **200** streams compared against the reference, **102,400** bytes, **0** disagreements, **465** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 from spc7110 import Chip
