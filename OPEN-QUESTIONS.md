@@ -80,37 +80,56 @@ which at least keeps the two comparable.
 **What would settle or reopen it.** A capture of the real part fed a truncated
 block.
 
-## Where a real stream would help and none has been found
+## Where the real streams were found after all
 
-### Every stream this is driven with is generated.
+### Every stream this is driven with used to be generated.
 
 **The document says.** Nothing.
 
-**What this project does.** Drives both implementations with streams generated
-from a seed, which reach parts of the state machine an encoder would never have
-produced and are a fair test of the decoder, but are not the data the part was
-built for.
+**What was wrong with the first attempt.** It searched. A pattern search turned up
+a run of 254 plausible directory entries in *Super Power League 4*, every one of
+which decoded without complaint, which established nothing: this decompressor
+raises on nothing, so a random offset decodes just as happily. The measurement
+that killed it was entropy, 7.233 for the run against 7.144 for random offsets,
+and a separation that small cannot tell a stream from a coincidence.
 
-**Why not real ones.** The three retail cartridges carrying this part are on
-hand. Reaching the streams inside them needs the decompression directory, and a
-search for one turned up a run of 254 entries in *Super Power League 4* at
-`0x091CC0` whose first bytes are all valid modes and whose offsets all land
-inside the image. Every one of them decodes without complaint, which establishes
-nothing, because this decompressor raises on nothing and a random offset decodes
-just as happily.
+**What was missing was the program.** The part takes the directory base from
+three registers the game writes, so the base was never something to search for.
+It is a constant in the cartridge's own code, and the three games write it three
+different ways:
 
-The measurement that decided it, taken on 2026-08-25: output from those entries
-has mean entropy 7.233 over 512 bytes, and output from 96 random offsets has
-7.144. A separation that small cannot tell a stream from a coincidence, so the
-run was not adopted. Publishing it as a corpus of real streams would have been
-publishing a guess with a number attached.
+| Cartridge | How its code names the base | Streams |
+|:--|:--|--:|
+| Tengai Makyou Zero | three immediate loads | 196 |
+| Momotarou Dentetsu Happy | three bytes of a table, read long-indexed | 256 |
+| Super Power League 4 | two sixteen bit loads over the same three bytes | 167 |
 
-**What would settle or reopen it.** The directory base for one of the three
-cartridges taken from the game's own code rather than by pattern search, or any
-independent way to tell a real stream from a coincidence. The neighbouring
-`snes-sdd1` has the second kind, because somebody expanded one of its cartridges
-and the expanded image is a check no emulator is involved in. Nothing equivalent
-exists for this part.
+All three name `0x000008`, and in all three the directory ends at exactly the
+address of the first stream, which is a structure holding across three
+independently written games rather than a coincidence.
+
+**What the oracle says now.** The separation that was missing is there:
+
+| Cartridge | Streams decode to | Random offsets decode to |
+|:--|--:|--:|
+| Tengai Makyou Zero | 2.685 | 7.367 |
+| Momotarou Dentetsu Happy | 3.654 | 7.243 |
+| Super Power League 4 | 3.603 | 7.104 |
+
+Entropy in bits per byte over 512 bytes. Graphics carry far less than noise, and
+the gap is now four bits rather than a tenth of one.
+
+**What is driven with them.** All 619 streams, through both implementations,
+316,928 bytes compared, none disagreeing. The census is in
+[`conformance/cartridges.json`](conformance/cartridges.json) and the run in
+[`conformance/streams.json`](conformance/streams.json), both with the digests of
+the three cartridges and no byte of any of them.
+
+**What it does not establish.** That the algorithm is what the silicon does. Two
+implementations agreeing on real data is still two implementations agreeing, and
+these two descend from one reverse engineering. What it removes is the
+possibility that they agreed only because generated streams never reach the paths
+an encoder's output takes.
 
 ## Where a figure is a working size rather than a measured one
 

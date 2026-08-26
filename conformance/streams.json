@@ -1,0 +1,54 @@
+{
+  "note": "Both implementations driven with the streams the three cartridges actually carry, found by reading each game's own code. Counts only: no compressed byte, no decompressed byte and no stream address is recorded here.",
+  "reference": {
+    "name": "snes9x",
+    "repository": "https://github.com/snes9xgit/snes9x.git",
+    "commit": "2971061cf07fdc6fc7d18883edf4e648eb16a6d2",
+    "sparse": ["."],
+    "path": ".",
+    "source": "spc7110dec.cpp",
+    "header": "spc7110dec.h",
+    "from": "uint8 SPC7110Decomp::read()",
+    "until": "#endif"
+  },
+  "windowBytes": "0x8000",
+  "wantedBytes": 512,
+  "readFrom": [
+    {
+      "name": "Momotarou Dentetsu Happy (Japan).sfc",
+      "crc32": "0b8d1474",
+      "md5": "18862a20e311f8ca08d064190c25504f",
+      "sha1": "a0eebf715c93751c6423dc277717e365d69c735f",
+      "sha256": "9fc7a66464e71d0f056fed2b560f527a5af69034c96293a2731107479763a9d8",
+      "streams": 256,
+      "bytes": 131072,
+      "disagreed": 0,
+      "first": null
+    },
+    {
+      "name": "Super Power League 4 (Japan).sfc",
+      "crc32": "c07f099d",
+      "md5": "febca3a92d34ffa119891247d9b27d09",
+      "sha1": "632061ae4892ec6cd75616da66f7be5c75e8d7af",
+      "sha256": "0847c8f8021af9c7c139c98312e4974308650c2cbcb617161bb56c46626258bb",
+      "streams": 167,
+      "bytes": 85504,
+      "disagreed": 0,
+      "first": null
+    },
+    {
+      "name": "Tengai Makyou Zero (Japan).sfc",
+      "crc32": "1e327bd9",
+      "md5": "29998124a67deda111d5aca8aaf5dca5",
+      "sha1": "91ff16da242d39736aead4d360bf6bf7c0afce82",
+      "sha256": "8620203da71d32d017bb21f542864c1d90705b87eb67815d06b43f09120318aa",
+      "streams": 196,
+      "bytes": 100352,
+      "disagreed": 0,
+      "first": null
+    }
+  ],
+  "streams": 619,
+  "bytes": 316928,
+  "disagreed": 0
+}

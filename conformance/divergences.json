@@ -36,7 +36,7 @@
       "documentSays": "Nothing.",
       "referenceDoes": "Produces the bytes the differential run compares against.",
       "packageFollows": "reference",
-      "reasoning": "The differential builds the reference from pinned source and drives both with the same input, so a disagreement is real and a agreement means the two programs agree. Where snes9x is wrong this is wrong with it, and nothing here could tell. A second reference would be the obvious next rung and there is none to reach. Checked on 2026-08-25: the pinned reference's own header names byuu and neviksti, and bsnes, the only other implementation of this part, names neviksti and talarubi. Both descend from one reverse engineering, so running the two and requiring them to agree would be running one implementation twice and calling it corroboration.",
+      "reasoning": "The differential builds the reference from pinned source and drives both with the same input, so a disagreement is real and a agreement means the two programs agree. Where snes9x is wrong this is wrong with it, and nothing here could tell. A second reference would be the obvious next rung and there is none to reach. Checked on 2026-08-25: the pinned reference's own header names byuu and neviksti, and bsnes, the only other implementation of this part, names neviksti and talarubi. Both descend from one reverse engineering, so running the two and requiring them to agree would be running one implementation twice and calling it corroboration. Since 2026-08-26 the agreement covers real data as well as generated: 619 streams taken from the three cartridges, 316,928 bytes compared, none disagreeing. That removes one way the two could have agreed for the wrong reason, which is that generated streams never take the paths an encoder's output takes. It does not change what the agreement is worth against silicon.",
       "wouldSettleIt": "A recording taken off a real SPC7110: feed a known stream and capture what comes out. A second implementation would not do it, because every one that exists descends from the same reverse engineering."
     },
     {
@@ -53,13 +53,13 @@
     {
       "id": "no-real-stream-has-been-found-to-drive-it-with",
       "parts": ["spc7110"],
-      "severity": "medium",
-      "status": "open",
+      "severity": "low",
+      "status": "closed",
       "documentSays": "Nothing.",
       "referenceDoes": "Decompresses whatever it is pointed at, and raises on nothing, so it cannot say whether an offset was a stream.",
-      "packageFollows": "neither",
-      "reasoning": "The three retail cartridges carrying this part are on hand and every stream in them is real compressed data, which would be a stronger input than a generated one. Reaching them needs the decompression directory, and a search for it found a run of 254 entries in Super Power League 4 at 0x091CC0 whose first bytes are all valid modes and whose offsets all land inside the image. Every one of them decodes without complaint, which establishes nothing: this decompressor raises on nothing, so a random offset decodes too. Measured on 2026-08-25, output from those entries has mean entropy 7.233 and output from 96 random offsets has 7.144, a separation too small to tell a stream from noise. The run was therefore not adopted, because publishing it as a corpus of real streams would have been publishing an unvalidated guess.",
-      "wouldSettleIt": "The directory base for one of the three cartridges, taken from the game's own code rather than by pattern search, or any independent means of telling a real stream from a coincidence, such as an image somebody else produced by decompressing the cartridge. Neither exists for this part the way it does for the S-DD1."
+      "packageFollows": "reference",
+      "reasoning": "Closed on 2026-08-26. The first attempt searched for the directory by pattern and found a run of 254 plausible entries whose output had mean entropy 7.233 against 7.144 from random offsets, a separation too small to tell a stream from a coincidence, so it was not adopted. The mistake was searching at all. The part takes the directory base from three registers the game writes, so the base is a constant in the cartridge's own code: conformance/cartridges.py reads it out of each of the three programs, in the three different forms they use to write it. Every one of them names 0x000008, every directory ends exactly where its first stream begins, and the output now separates cleanly: entropy 2.685, 3.654 and 3.603 against noise floors of 7.367, 7.243 and 7.104. That is 619 real streams across all three modes, and conformance/against_cartridges.py drives both implementations with every one of them.",
+      "wouldSettleIt": "Settled. The streams are reached and both implementations agree on all 619."
     }
   ]
 }

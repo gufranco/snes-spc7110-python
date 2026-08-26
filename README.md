@@ -23,7 +23,7 @@
   <a href="https://github.com/gufranco/snes-spc7110-python/issues">Issues</a>
 </p>
 
-**3** modes · **200** streams compared against the reference · **102,400** bytes, **0** disagreements · **399** tests · **100%** statement and branch coverage · no dependencies
+**3** modes · **200** streams compared against the reference · **102,400** bytes, **0** disagreements · **465** tests · **100%** statement and branch coverage · no dependencies
 
 ```python
 from spc7110 import Chip

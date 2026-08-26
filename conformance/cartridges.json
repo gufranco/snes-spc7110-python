@@ -1,0 +1,74 @@
+{
+  "note": "The real streams in the cartridges that carry this part, found by reading the directory base out of each program rather than by searching for a pattern. Counts, modes and entropy only: no stream address, no compressed byte and no decompressed byte is recorded here, and none can be recovered from this.",
+  "producedBy": "conformance/cartridges.py",
+  "programBytes": "0x100000",
+  "readFrom": [
+    {
+      "name": "Momotarou Dentetsu Happy (Japan).sfc",
+      "bytes": 3145728,
+      "crc32": "0b8d1474",
+      "md5": "18862a20e311f8ca08d064190c25504f",
+      "sha1": "a0eebf715c93751c6423dc277717e365d69c735f",
+      "sha256": "9fc7a66464e71d0f056fed2b560f527a5af69034c96293a2731107479763a9d8",
+      "streams": 256,
+      "modes": {
+        "0": 2,
+        "1": 3,
+        "2": 251
+      },
+      "directory": ["0x8", "0x408"],
+      "adjacent": true,
+      "baseFrom": "a long load from 0x002634",
+      "separation": {
+        "real": 3.654,
+        "noise": 7.243,
+        "tried": 150
+      }
+    },
+    {
+      "name": "Super Power League 4 (Japan).sfc",
+      "bytes": 2097152,
+      "crc32": "c07f099d",
+      "md5": "febca3a92d34ffa119891247d9b27d09",
+      "sha1": "632061ae4892ec6cd75616da66f7be5c75e8d7af",
+      "sha256": "0847c8f8021af9c7c139c98312e4974308650c2cbcb617161bb56c46626258bb",
+      "streams": 167,
+      "modes": {
+        "0": 16,
+        "1": 34,
+        "2": 117
+      },
+      "directory": ["0x8", "0x2a4"],
+      "adjacent": true,
+      "baseFrom": "three immediate loads",
+      "separation": {
+        "real": 3.603,
+        "noise": 7.104,
+        "tried": 150
+      }
+    },
+    {
+      "name": "Tengai Makyou Zero (Japan).sfc",
+      "bytes": 5242880,
+      "crc32": "1e327bd9",
+      "md5": "29998124a67deda111d5aca8aaf5dca5",
+      "sha1": "91ff16da242d39736aead4d360bf6bf7c0afce82",
+      "sha256": "8620203da71d32d017bb21f542864c1d90705b87eb67815d06b43f09120318aa",
+      "streams": 196,
+      "modes": {
+        "0": 19,
+        "1": 13,
+        "2": 164
+      },
+      "directory": ["0x8", "0x318"],
+      "adjacent": true,
+      "baseFrom": "three immediate loads",
+      "separation": {
+        "real": 2.685,
+        "noise": 7.367,
+        "tried": 150
+      }
+    }
+  ],
+  "streams": 619
+}

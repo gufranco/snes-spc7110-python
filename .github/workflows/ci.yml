@@ -172,6 +172,26 @@ jobs:
           python -m conformance.differential --seeds "${seeds}"
         shell: bash
 
+      # The run over real cartridge streams is checked into the tree, because it
+      # needs three cartridges nobody can be assumed to hold. This confirms it
+      # still says what the record cites it for, and that it was run against the
+      # commit this build pins rather than some older one.
+      - name: The run over real streams still agrees, against this same reference
+        run: |
+          python -c "
+          import sys
+          sys.path.insert(0, '.')
+          sys.path.insert(0, 'conformance')
+          from conformance import against_cartridges as against, build
+          found = against.recorded()
+          assert found, 'the run over real streams is missing from the tree'
+          assert found['disagreed'] == 0, found['first']
+          pinned = build.reference()['commit']
+          assert found['reference']['commit'] == pinned, (found['reference']['commit'], pinned)
+          print(f\"  {found['streams']} real streams, {found['bytes']:,} bytes, {found['disagreed']} disagreed\")
+          "
+        shell: bash
+
   speed:
     name: Throughput
     runs-on: ubuntu-latest
