@@ -44,7 +44,7 @@ The record names both empty rungs rather than promoting the third.
 
 ## What is settled and what is not
 
-**Not settled: 6 things**, each in
+**Not settled: 7 things**, each in
 [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) with the measurement that would close it.
 The honest summary is that every output value rests on agreement between two
 implementations.

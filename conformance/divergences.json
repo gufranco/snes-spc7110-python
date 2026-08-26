@@ -49,6 +49,17 @@
       "packageFollows": "reference",
       "reasoning": "How long a decode takes, and whether a console reading the output can outrun it, is not modelled. On real hardware that decides whether a game has to wait.",
       "wouldSettleIt": "A measurement on a real cartridge, or a datasheet."
+    },
+    {
+      "id": "no-real-stream-has-been-found-to-drive-it-with",
+      "parts": ["spc7110"],
+      "severity": "medium",
+      "status": "open",
+      "documentSays": "Nothing.",
+      "referenceDoes": "Decompresses whatever it is pointed at, and raises on nothing, so it cannot say whether an offset was a stream.",
+      "packageFollows": "neither",
+      "reasoning": "The three retail cartridges carrying this part are on hand and every stream in them is real compressed data, which would be a stronger input than a generated one. Reaching them needs the decompression directory, and a search for it found a run of 254 entries in Super Power League 4 at 0x091CC0 whose first bytes are all valid modes and whose offsets all land inside the image. Every one of them decodes without complaint, which establishes nothing: this decompressor raises on nothing, so a random offset decodes too. Measured on 2026-08-25, output from those entries has mean entropy 7.233 and output from 96 random offsets has 7.144, a separation too small to tell a stream from noise. The run was therefore not adopted, because publishing it as a corpus of real streams would have been publishing an unvalidated guess.",
+      "wouldSettleIt": "The directory base for one of the three cartridges, taken from the game's own code rather than by pattern search, or any independent means of telling a real stream from a coincidence, such as an image somebody else produced by decompressing the cartridge. Neither exists for this part the way it does for the S-DD1."
     }
   ]
 }

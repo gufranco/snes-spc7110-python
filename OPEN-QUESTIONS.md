@@ -67,6 +67,38 @@ which at least keeps the two comparable.
 **What would settle or reopen it.** A capture of the real part fed a truncated
 block.
 
+## Where a real stream would help and none has been found
+
+### Every stream this is driven with is generated.
+
+**The document says.** Nothing.
+
+**What this project does.** Drives both implementations with streams generated
+from a seed, which reach parts of the state machine an encoder would never have
+produced and are a fair test of the decoder, but are not the data the part was
+built for.
+
+**Why not real ones.** The three retail cartridges carrying this part are on
+hand. Reaching the streams inside them needs the decompression directory, and a
+search for one turned up a run of 254 entries in *Super Power League 4* at
+`0x091CC0` whose first bytes are all valid modes and whose offsets all land
+inside the image. Every one of them decodes without complaint, which establishes
+nothing, because this decompressor raises on nothing and a random offset decodes
+just as happily.
+
+The measurement that decided it, taken on 2026-08-25: output from those entries
+has mean entropy 7.233 over 512 bytes, and output from 96 random offsets has
+7.144. A separation that small cannot tell a stream from a coincidence, so the
+run was not adopted. Publishing it as a corpus of real streams would have been
+publishing a guess with a number attached.
+
+**What would settle or reopen it.** The directory base for one of the three
+cartridges taken from the game's own code rather than by pattern search, or any
+independent way to tell a real stream from a coincidence. The neighbouring
+`snes-sdd1` has the second kind, because somebody expanded one of its cartridges
+and the expanded image is a check no emulator is involved in. Nothing equivalent
+exists for this part.
+
 ## Where a figure is a working size rather than a measured one
 
 ### The output buffer size.
