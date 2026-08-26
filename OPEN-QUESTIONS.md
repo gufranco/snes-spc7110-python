@@ -37,8 +37,21 @@ compared.
 implementations is not a measurement of silicon, and saying so is the point of
 this entry.
 
+**A second reference is the obvious next rung and there is none to reach.**
+Checked on 2026-08-25 by reading the headers rather than assuming: the pinned
+reference names byuu and neviksti, and bsnes, which is the only other
+implementation of this part, names neviksti as the original and talarubi as the
+optimisation. Both descend from one reverse engineering. Building the second and
+requiring the two to agree would be running one implementation twice and calling
+the result corroboration, so it is not done.
+
+The neighbouring `snes-sdd1` is in the same position for the same reason, and its
+records say so too. What rescues that one is not a second implementation but a
+second artefact: somebody expanded a cartridge, and the expanded image can be
+compared against. No equivalent exists here.
+
 **What would settle or reopen it.** A capture of a real SPC7110 expanding a known
-block.
+block. Not a second implementation, because there is no independent one.
 
 ### Whether the three modes are the only three.
 

@@ -36,8 +36,8 @@
       "documentSays": "Nothing.",
       "referenceDoes": "Produces the bytes the differential run compares against.",
       "packageFollows": "reference",
-      "reasoning": "The differential builds the reference from pinned source and drives both with the same input, so a disagreement is real and a agreement means the two programs agree. Where snes9x is wrong this is wrong with it, and nothing here could tell.",
-      "wouldSettleIt": "A recording taken off a real SPC7110: feed a known stream and capture what comes out."
+      "reasoning": "The differential builds the reference from pinned source and drives both with the same input, so a disagreement is real and a agreement means the two programs agree. Where snes9x is wrong this is wrong with it, and nothing here could tell. A second reference would be the obvious next rung and there is none to reach. Checked on 2026-08-25: the pinned reference's own header names byuu and neviksti, and bsnes, the only other implementation of this part, names neviksti and talarubi. Both descend from one reverse engineering, so running the two and requiring them to agree would be running one implementation twice and calling it corroboration.",
+      "wouldSettleIt": "A recording taken off a real SPC7110: feed a known stream and capture what comes out. A second implementation would not do it, because every one that exists descends from the same reverse engineering."
     },
     {
       "id": "nothing-here-is-a-timing-claim",
