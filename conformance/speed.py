@@ -86,7 +86,7 @@ class Timed:
 
 def measure(calls: int = CALLS, repeats: int = REPEATS) -> Timed:
     """Expand a stream that many bytes, and time it."""
-    part = spc7110.Chip(MODEL)
+    part = spc7110.Chip(MODEL).reset()
     seconds = []
     for _ in range(repeats):
         started = time.perf_counter()
