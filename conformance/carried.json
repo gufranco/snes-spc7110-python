@@ -1,0 +1,38 @@
+{
+  "what": "The tables this package carries in source because no artifact exists to fetch, pinned by digest the way a fetched image is.",
+  "why": "These are coder parameters lifted from the hardware rather than a design anyone here chose, and no manufacturer published them as a file. Nothing was checking that they stay what they were: the decoder is steered by them on every stream.",
+  "howTheDigestIsTaken": "sha256 of the values as compact JSON, json.dumps(list(table), separators=(',', ':')) encoded as UTF-8. Of the values rather than of the source, so reformatting the module, rewrapping a line or changing a comment leaves the digest alone and changing a number does not.",
+  "whatThisIsNot": "A claim that the table is correct. The self-checks beside each one and this digest are different questions: the checks say the table could be the part's, the digest says it has not changed since somebody last argued that it is.",
+  "notStated": "No document for this part has been found, so no entry here can carry a publisher's digest and none pretends to.",
+  "tables": [
+    {
+      "name": "EVOLUTION",
+      "module": "spc7110/tables.py",
+      "entries": 53,
+      "sha256": "6c3028289df8903584164d24b2feb0dd15c7ca1224c8d8175f5394e9f1701092",
+      "what": "The state machine of the arithmetic coder: a probability, where to go next each way, and whether the row may swap which symbol is the likely one.",
+      "selfCheck": "Every next-state index is a row that exists."
+    },
+    {
+      "name": "MODE2_CONTEXT",
+      "module": "spc7110/tables.py",
+      "entries": 32,
+      "sha256": "8445148adbdb514f5e78726c3dd1754d3a3434488f1aa810c55fb7c0a5f900a1",
+      "what": "How mode two picks a context from recent history."
+    },
+    {
+      "name": "MORTON16",
+      "module": "spc7110/tables.py",
+      "entries": 2,
+      "sha256": "27eb2b20b46f415f5d600be1785140ba3f55018867d31fa25c9667736f7613e0",
+      "what": "The de-interleave that separates two woven planes."
+    },
+    {
+      "name": "MORTON32",
+      "module": "spc7110/tables.py",
+      "entries": 4,
+      "sha256": "569cec3ca268adf8d88b1fbb53a3983cd175f0791447a1648036fb4294378a4a",
+      "what": "The same for four planes."
+    }
+  ]
+}
