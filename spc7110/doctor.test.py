@@ -3,11 +3,11 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn, override
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from spc7110 import doctor
+from spc7110 import doctor, models
 
 
 class Complaint(Exception):
@@ -61,7 +61,33 @@ class ExamineTest(unittest.TestCase):
         self.assertIn("python", [one.name for one in doctor.examine()])
 
     def test_and_the_version_of_this_package(self) -> None:
-        self.assertIn("spc7110", [one.name for one in doctor.examine()])
+        self.assertIn("snes-spc7110-python", [one.name for one in doctor.examine()])
+
+    def test_the_package_and_the_part_do_not_share_a_name(self) -> None:
+        """Two lines with one name in a report is a line somebody misreads."""
+        names = [one.name for one in doctor.examine()]
+
+        self.assertEqual(len(names), len(set(names)))
+
+    def test_the_part_is_reported_with_the_line_pulled(self) -> None:
+        """Driven rather than described, so a part that stopped offering it shows here."""
+        found = [one for one in doctor.examine() if one.name == "spc7110"]
+
+        self.assertIn("resets and carries nothing across it", found[0].detail)
+
+    def test_a_part_that_builds_and_will_not_reset_is_reported_as_broken(self) -> None:
+        class WillNotReset(models.Chip):
+            @override
+            def reset(self) -> NoReturn:
+                raise Complaint("the line did nothing")
+
+        found = [
+            one
+            for one in doctor.examine(chip=lambda name: WillNotReset(name))
+            if one.name == "spc7110"
+        ]
+
+        self.assertFalse(found[0].ok)
 
     def test_and_one_finding_per_mode_it_covers(self) -> None:
         from spc7110 import models

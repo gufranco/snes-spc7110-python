@@ -87,7 +87,12 @@ def _python() -> "Finding":
 
 
 def _package() -> "Finding":
-    return Finding("spc7110", True, f"version {VERSION}")
+    """The project, named after the repository rather than the import.
+
+    The part this covers is also called spc7110, and two lines with one name in
+    a report is a line somebody misreads.
+    """
+    return Finding("snes-spc7110-python", True, f"version {VERSION}")
 
 
 def _default_build(name: str, source: bytes | bytearray) -> Any:
@@ -108,6 +113,34 @@ def _mode(name: str, build: Callable[..., Any]) -> "Finding":
         )
     described = models.mode_named(name)
     return Finding(name, True, f"mode {described.number}, {described.depth} bits per pixel")
+
+
+def _chip(name: str, build: Callable[[str], Any]) -> "Finding":
+    """Whether the part builds and resets, saying what stopped it if not.
+
+    The mode checks above start a decompressor, which is the thing this package
+    spends its time on. This one holds the part itself and pulls the console's
+    reset line, which the other checks never touch. This part carries nothing
+    across a reset, and that is exactly why driving it here matters: a caller
+    resetting every part on a board should not have to know which ones hold
+    state, and the only way that stays true is if something checks.
+    """
+    try:
+        chip = build(name)
+        chip.reset()
+    except Exception as trouble:
+        return Finding(
+            name,
+            False,
+            f"{type(trouble).__name__}: {trouble}",
+            "this is the part failing rather than anything to do with a reference;"
+            " the line above is what it said",
+        )
+    return Finding(name, True, f"model {chip.model}, resets and carries nothing across it")
+
+
+def _default_chip(name: str) -> Any:
+    return models.lookup(name).build()
 
 
 def _known(build: Callable[..., Any]) -> "Finding":
@@ -224,9 +257,11 @@ def examine(
     pin: Path | str = PIN,
     driver: Path | str = DRIVER,
     start: Callable[..., Any] = decompressor.Decompressor,
+    chip: Callable[[str], Any] = _default_chip,
 ) -> list["Finding"]:
     """Everything worth looking at on this machine, in the order a reader wants it."""
     found = [_python(), _package()]
+    found.extend(_chip(name, chip) for name in sorted(models.MODELS))
     found.extend(_mode(name, build) for name in sorted(models.MODES))
     found.append(_known(build))
     found.append(_empty(start))
