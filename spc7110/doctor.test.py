@@ -81,11 +81,7 @@ class ExamineTest(unittest.TestCase):
             def reset(self) -> NoReturn:
                 raise Complaint("the line did nothing")
 
-        found = [
-            one
-            for one in doctor.examine(chip=lambda name: WillNotReset(name))
-            if one.name == "spc7110"
-        ]
+        found = [one for one in doctor.examine(chip=WillNotReset) if one.name == "spc7110"]
 
         self.assertFalse(found[0].ok)
 
