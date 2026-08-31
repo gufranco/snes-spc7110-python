@@ -4,7 +4,7 @@ All three modes of the SPC7110's decompressor, held to the chip's own reference 
 
 [![CI](https://github.com/gufranco/snes-spc7110-python/actions/workflows/ci.yml/badge.svg)](https://github.com/gufranco/snes-spc7110-python/actions/workflows/ci.yml)
 
-**3** modes, **200** streams compared against the reference, **102,400** bytes, **0** disagreements, **494** tests, **100%** statement and branch coverage, no dependencies
+**3** modes, **200** streams compared against the reference, **102,400** bytes, **0** disagreements, **536** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 from spc7110 import Chip
