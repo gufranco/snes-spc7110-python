@@ -204,3 +204,19 @@ jobs:
 
       - name: The decoder must still run faster than the floor
         run: python -m conformance.speed
+
+  package:
+    name: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Build the wheel
+        run: python -m pip wheel --no-deps --wheel-dir dist .
+
+      - name: Every module ships and no test does
+        run: python -m conformance.package dist/spc7110-*.whl
