@@ -1,24 +1,3 @@
-"""Hold the decompressor to the implementation every emulator already agrees with.
-
-A decompressor needs something to decompress, and the compressed streams this
-chip was made for are cartridge graphics. Those are the protected work and they
-do not ship here, so the streams used are generated from a seed instead.
-
-That is not a weaker test than using a real one. An arithmetic decoder does not
-know or care whether its input was ever compressed; it reads bits, narrows a
-span, and produces symbols. Arbitrary bytes drive it through the same state
-machine that real data drives it through, and they drive it through parts real
-data never reaches, because a stream nobody encoded has no reason to stay on the
-paths an encoder would have used.
-
-Each case names a mode, a place to start in the stream, and how much output to
-throw away before reading. Both sides get the same three and the answers are
-compared byte for byte.
-
-Usage:
-    python3 conformance/differential.py [--seeds N] [--driver PATH]
-"""
-
 import random
 import struct
 import subprocess
@@ -61,8 +40,6 @@ class Options:
 
 
 class Case:
-    """One stream, one mode, and where to start reading it."""
-
     def __init__(
         self,
         seed: int,
@@ -85,7 +62,6 @@ class Case:
 
 
 def cases(seeds: int = SEEDS) -> list["Case"]:
-    """One case per seed, cycling through the modes so every run covers all three."""
     found = []
     for seed in range(seeds):
         source = random.Random(seed)
@@ -104,14 +80,12 @@ def cases(seeds: int = SEEDS) -> list["Case"]:
 
 
 def replay(case: "Case") -> list[int]:
-    """The case through the model."""
     chip = decompressor.Decompressor(case.data)
     chip.start(mode=case.mode, offset=case.offset, index=case.index)
     return list(chip.read(case.wanted))
 
 
 def ask(case: "Case", driver: Path | str) -> list[int]:
-    """The case through the reference, whose answers decide."""
     done = subprocess.run(
         [driver, str(case.mode), str(case.offset), str(case.index)],
         input=struct.pack("<I", case.wanted) + case.data,
@@ -127,7 +101,6 @@ def ask(case: "Case", driver: Path | str) -> list[int]:
 def disagreement(
     expected: Sequence[int], actual: Sequence[int]
 ) -> tuple[int, int | None, int | None] | None:
-    """The first byte the two answers differ on, or nothing."""
     for index in range(max(len(expected), len(actual))):
         theirs = expected[index] if index < len(expected) else None
         ours = actual[index] if index < len(actual) else None

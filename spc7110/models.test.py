@@ -66,13 +66,6 @@ class BuildTest(unittest.TestCase):
 
 
 class PartTest(unittest.TestCase):
-    """The catalogue of parts, which is not the catalogue of modes.
-
-    Three modes exist and one chip does all three, so a mode is an argument to a
-    call rather than a name in this catalogue. Keeping them apart is what stops
-    a caller writing `Chip("4bpp")` and getting something.
-    """
-
     def test_the_catalogue_holds_the_one_part_there_is(self) -> None:
         self.assertEqual(sorted(models.MODELS), ["spc7110"])
 
@@ -101,7 +94,6 @@ class PartTest(unittest.TestCase):
         self.assertIn("spc7110", str(raised.exception))
 
     def test_a_reset_hands_the_part_back(self) -> None:
-        """It clears nothing, and the record says so. It exists so a caller can chain."""
         built = models.lookup("spc7110").build()
 
         self.assertIs(built.reset(), built)
@@ -114,8 +106,6 @@ class PartTest(unittest.TestCase):
 
 
 class NamingNoneTest(unittest.TestCase):
-    """That leaving the model out is refused, and refused usefully."""
-
     def test_building_without_naming_a_model_is_refused(self) -> None:
         with self.assertRaises(errors.UnknownModelError):
             spc7110.Chip()

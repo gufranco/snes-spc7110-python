@@ -1,14 +1,3 @@
-"""The three shapes the decompressor can produce, named the way people name them.
-
-The chip does not have three decompressors. It has one, and a mode that decides
-how many bits a symbol carries and what is done with them afterwards, so the
-modes are worth naming by the depth they produce rather than by their number.
-
-Mode zero produces one bit a pixel, mode one two, and mode two four. A cartridge
-picks the mode per block, so the same stream decoded in the wrong mode produces
-plausible bytes that are not the picture.
-"""
-
 from collections.abc import Sequence
 from typing import Any, override
 
@@ -17,8 +6,6 @@ from .errors import UnknownMode, UnknownModelError
 
 
 class Mode:
-    """One mode: what it produces, and how to start a decompressor on it."""
-
     __slots__ = (
         "aliases",
         "depth",
@@ -100,13 +87,6 @@ def _normalise(name: str | int) -> str:
 
 
 def mode_named(name: str | int) -> "Mode":
-    """The mode of that name or number, however it happens to be written.
-
-    Named for what it hands back. A mode is not a part and is not built by the
-    constructor, so it keeps a resolver of its own; MODES is the catalogue and
-    this is what turns the names and numbers people write into one of its
-    entries.
-    """
     found = _BY_NUMBER.get(name) if isinstance(name, int) else _BY_ALIAS.get(_normalise(name))
     if found is None:
         raise UnknownMode(f"{name} is not a mode this chip has; it has {', '.join(sorted(MODES))}")
@@ -114,14 +94,6 @@ def mode_named(name: str | int) -> "Mode":
 
 
 class Model:
-    """One part: what it is, and what a caller can ask it to do.
-
-    A part rather than a mode. The three modes are how a caller asks for one
-    decompression, not three chips: one SPC7110 was made and it does all three.
-    The family's catalogue is a catalogue of parts, so it holds one entry, and
-    the mode is an argument to the call rather than a name in the catalogue.
-    """
-
     __slots__ = ("aliases", "modes", "name", "summary")
 
     def __init__(self, name: str, summary: str, aliases: Sequence[str] = ()) -> None:
@@ -139,8 +111,6 @@ class Model:
 
 
 class Chip:
-    """The chip as a thing a caller holds, rather than a function they call."""
-
     __slots__ = ("model",)
 
     def __init__(self, model: str) -> None:
@@ -153,24 +123,10 @@ class Chip:
         offset: int = 0,
         index: int = 0,
     ) -> Decompressor:
-        """Start a decompression of that stream in that mode.
-
-        The mode comes second because it is the thing that changes per call. It
-        is looked up through the same catalogue a caller would use, so a mode
-        this chip does not have is refused here rather than several bytes into a
-        decode.
-        """
         started: Decompressor = mode_named(mode).build(source, offset=offset, index=index)
         return started
 
     def reset(self) -> "Chip":
-        """The console's reset line, which this part carries no state across.
-
-        Every decompression is started from its own header and its own context
-        table, and nothing survives from one to the next. So this changes
-        nothing, and it exists because a caller driving a board resets every
-        part on it and should not have to special-case which ones hold state.
-        """
         return self
 
     @override
@@ -201,20 +157,6 @@ DEFAULT_MODEL = "spc7110"
 
 
 def lookup(name: str | None) -> Model:
-    """The part of that name, however it happens to be written.
-
-    Naming nothing is refused rather than filled in. A default would be the one
-    implicit thing in the call that builds a part, and it is worst where it looks
-    most harmless: a caller who learns to leave the model out against a member
-    covering one part writes the same call against a member covering sixteen.
-
-    Kept apart from the mode resolver because the two catalogues answer different
-    questions, and one function that guessed which was meant would answer the
-    wrong one for a caller who wrote a mode number.
-
-    Not exported from the package. What a caller wants is the part, and the part
-    carries its own model.
-    """
     if name is None:
         raise UnknownModelError(
             "no model was named, and this package will not choose one for you."

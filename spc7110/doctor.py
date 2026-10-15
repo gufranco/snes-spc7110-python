@@ -1,24 +1,3 @@
-"""Look at this machine and say what is actually here, so a report can be believed.
-
-What goes wrong with this package is rarely a defect in it. It is a Python too
-old to run it, a reference driver that was never built so the differential check
-quietly did nothing, or a disagreement about which commit of which reference the
-numbers came from. All of those look the same from outside: the bytes disagree.
-
-So this looks, and prints what it found in a form that can be pasted into an
-issue as it stands.
-
-Two rules shape it, and they are the whole point.
-
-Nothing is hidden. A check that fails says what it saw, and a check that itself
-throws is caught and reported as what it threw, named by its type. Swallowing
-either would leave a report that says everything is fine on a machine where
-something is not, which is worse than no report.
-
-Nothing is inferred. Every line is something looked at on this machine just now,
-including a stream actually decoded and the first bytes it produced.
-"""
-
 import hashlib
 import json
 import platform
@@ -44,18 +23,13 @@ DRIVER = ROOT / "conformance" / "ref" / "driver"
 OLDEST_PYTHON = (3, 12)
 
 KNOWN = bytes(range(256))
-"""A stream that is not anybody's data, so the answer can be printed without carrying anything."""
 
 WITNESS = "4bpp"
-"""The mode the decode is run in, being the one the cartridges that carry this part use most."""
 
 SHOWN = 8
-"""How many decoded bytes are printed, enough to tell two builds apart and too few to be data."""
 
 
 class Finding:
-    """One thing that was looked at, and what was there."""
-
     def __init__(self, name: str, ok: bool, detail: str, advice: str | None = None) -> None:
         self.name = name
         self.ok = ok
@@ -64,12 +38,10 @@ class Finding:
 
     @property
     def line(self) -> str:
-        """The one-line form, which is what a reader scans."""
         return f"  {'ok  ' if self.ok else '   !'}  {self.name}: {self.detail}"
 
     @property
     def report(self) -> str:
-        """The same, with what to do about it when there is something to do."""
         if self.ok or not self.advice:
             return self.line
         return f"{self.line}\n         {self.advice}"
@@ -89,11 +61,6 @@ def _python() -> "Finding":
 
 
 def _package() -> "Finding":
-    """The project, named after the repository rather than the import.
-
-    The part this covers is also called spc7110, and two lines with one name in
-    a report is a line somebody misreads.
-    """
     return Finding("snes-spc7110-python", True, f"version {VERSION}")
 
 
@@ -102,7 +69,6 @@ def _default_build(name: str, source: bytes | bytearray) -> Any:
 
 
 def _mode(name: str, build: Callable[..., Any]) -> "Finding":
-    """Whether that mode builds, saying exactly what stopped it if not."""
     try:
         build(name, KNOWN)
     except Exception as trouble:
@@ -118,15 +84,6 @@ def _mode(name: str, build: Callable[..., Any]) -> "Finding":
 
 
 def _chip(name: str, build: Callable[[str], Any]) -> "Finding":
-    """Whether the part builds and resets, saying what stopped it if not.
-
-    The mode checks above start a decompressor, which is the thing this package
-    spends its time on. This one holds the part itself and pulls the console's
-    reset line, which the other checks never touch. This part carries nothing
-    across a reset, and that is exactly why driving it here matters: a caller
-    resetting every part on a board should not have to know which ones hold
-    state, and the only way that stays true is if something checks.
-    """
     try:
         chip = build(name)
         chip.reset()
@@ -146,13 +103,6 @@ def _default_chip(name: str) -> Any:
 
 
 def _known(build: Callable[..., Any]) -> "Finding":
-    """What a stream nobody owns decodes to here, printed so two builds can be compared.
-
-    The bytes are the point. A report that says the numbers disagree is not
-    actionable until both sides can see the same first few, and this stream is
-    counted up from zero rather than taken from a cartridge, so printing what it
-    produces carries nothing that belongs to anybody.
-    """
     try:
         chip = build(WITNESS, KNOWN)
         produced = bytes(chip.take_byte() for _ in range(SHOWN))
@@ -171,12 +121,6 @@ def _known(build: Callable[..., Any]) -> "Finding":
 
 
 def _empty(build: Callable[..., Any]) -> "Finding":
-    """That a decompressor with nothing to decompress is refused.
-
-    A decoder that accepts an empty stream has to invent what it returns, and
-    invented bytes are worse than an error because nothing downstream can tell
-    them from real ones.
-    """
     try:
         build(b"")
     except errors.Empty:
@@ -197,11 +141,6 @@ def _empty(build: Callable[..., Any]) -> "Finding":
 
 
 def _reference(where: Path | str) -> "Finding":
-    """Which implementation this is held to, and at which commit.
-
-    Two people comparing against two commits of the same reference will disagree
-    and both be right. The digest of the file that pins it is what ends that.
-    """
     try:
         raw = Path(where).read_bytes()
     except OSError as trouble:
@@ -237,13 +176,6 @@ def _reference(where: Path | str) -> "Finding":
 
 
 def _driver(where: Path | str) -> "Finding":
-    """Whether the reference is built, since its absence is silent otherwise.
-
-    The differential check builds somebody else's implementation and decodes the
-    same streams through both. That build is not needed to use this package, and
-    a machine without it is the normal case rather than a broken one. It is
-    reported so that nobody reads a run that skipped as a run that passed.
-    """
     found = Path(where).exists()
     return Finding(
         "reference driver",
@@ -261,7 +193,6 @@ def examine(
     start: Callable[..., Any] = decompressor.Decompressor,
     chip: Callable[[str], Any] = _default_chip,
 ) -> list["Finding"]:
-    """Everything worth looking at on this machine, in the order a reader wants it."""
     found = [_python(), _package()]
     found.extend(_chip(name, chip) for name in sorted(models.MODELS))
     found.extend(_mode(name, build) for name in sorted(models.MODES))
@@ -273,7 +204,6 @@ def examine(
 
 
 def report(found: list["Finding"]) -> list[str]:
-    """The lines a person pastes into an issue."""
     unwell = [one for one in found if not one.ok]
     lines = [f"spc7110 {VERSION} on {platform.python_version()}, {platform.system()}", ""]
     lines.append("  the machine")

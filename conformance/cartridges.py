@@ -1,43 +1,3 @@
-"""Find the real streams in a cartridge, by reading the program that reaches them.
-
-Everything this decompressor has been driven with was generated from a seed. That
-is a fair test of an arithmetic decoder and it is not the data the part was built
-for, and an earlier attempt to reach the real data failed in a way worth
-recording: a pattern search turned up a run of plausible-looking directory
-entries, every one of which decoded without complaint, and nothing separated them
-from random offsets. This decompressor raises on nothing, so decoding without
-complaint establishes nothing.
-
-**What was missing was the program.** The part takes the directory base from
-three registers the game writes, so the base is not something to search for. It
-is a constant in the cartridge's own code, and reading it out settles where the
-streams are without guessing.
-
-Three cartridges carry this part and each writes the base differently:
-
-| Cartridge | How its code names the base |
-|:--|:--|
-| Tengai Makyou Zero | three immediate loads |
-| Momotarou Dentetsu Happy | three consecutive bytes of a table, read long-indexed |
-| Super Power League 4 | two sixteen bit loads covering the same three bytes |
-
-All three forms are read here. Nothing is executed.
-
-**The oracle is calibrated rather than assumed.** A directory that decodes is not
-a directory that is real. What tells them apart is what comes out: graphics carry
-far less entropy than noise, and the streams a base names are compared against
-streams at random offsets in the same image every time. The two figures are
-recorded together, because a claim published without its noise floor is a claim
-nobody can weigh.
-
-**What is recorded.** How many streams, of which modes, where the directory sat,
-and the entropy separation, with four digests of each cartridge. No compressed
-byte and no decompressed byte, and no stream address: those are the game's
-graphics in a different container.
-
-Usage: python3 conformance/cartridges.py <directory of cartridges> <output directory>
-"""
-
 import collections
 import hashlib
 import json
@@ -59,15 +19,8 @@ ROOT = Path(__file__).resolve().parent
 RECORDED = "cartridges.json"
 
 PROGRAM_BYTES = 0x100000
-"""Where the data ROM begins.
-
-The part addresses two ROMs and a cartridge image holds them one after the other.
-A megabyte is what all three carry, and it is checked rather than assumed: at any
-other split the directory the program names decodes to nothing that ascends.
-"""
 
 BASE_REGISTER = 0x4801
-"""The first of the three registers holding the directory base."""
 
 STORE_ABSOLUTE = 0x8D
 
@@ -89,7 +42,6 @@ SUFFIXES = (".sfc", ".smc")
 
 
 def digests_of(image: bytes) -> dict[str, str]:
-    """The four a manifest publishes, so a reader can cross-check any of them."""
     return {
         "crc32": f"{zlib.crc32(image):08x}",
         "md5": hashlib.md5(image).hexdigest(),
@@ -99,19 +51,10 @@ def digests_of(image: bytes) -> dict[str, str]:
 
 
 def data_rom(image: bytes) -> bytes:
-    """The half of the image the part decompresses out of."""
     return image[PROGRAM_BYTES:] if len(image) > PROGRAM_BYTES else b""
 
 
 def directory(drom: bytes, base: int) -> tuple[list[tuple[int, int]], int]:
-    """Every entry from that base, and where the run stopped.
-
-    An entry is a mode and a twenty four bit address, and the run stops at the
-    first entry that is not one: a mode the part does not have, an address past
-    the end of the data ROM, or an address below the one before it. Real
-    directories ascend, and requiring that is what keeps a run of ordinary bytes
-    from reading as a long directory.
-    """
     found: list[tuple[int, int]] = []
     at, last = base, -1
     while at + ENTRY_BYTES <= len(drom):
@@ -126,14 +69,6 @@ def directory(drom: bytes, base: int) -> tuple[list[tuple[int, int]], int]:
 
 
 def bases(image: bytes) -> list[tuple[int, str]]:
-    """Every directory base the cartridge's own code names, and how it named it.
-
-    Three forms, because the three cartridges use three. An immediate load puts
-    the byte in the instruction. A long load, indexed or not, names an address in
-    the program ROM, and the three registers take three consecutive bytes from
-    there, whether the game writes them with three eight bit loads or two sixteen
-    bit ones.
-    """
     found: list[tuple[int, str]] = []
     seen: set[int] = set()
     for at in range(4, len(image) - 2):
@@ -165,7 +100,6 @@ def bases(image: bytes) -> list[tuple[int, str]]:
 
 
 def entropy(held: bytes) -> float:
-    """How many bits a byte of this carries, which is what tells graphics from noise."""
     if not held:
         return 0.0
     counted = collections.Counter(held)
@@ -178,11 +112,6 @@ def separation(
     tries: int = TRIES,
     seed: int = DEFAULT_SEED,
 ) -> dict[str, float]:
-    """What the directory's streams decode to, against what random offsets do.
-
-    The second number is the point of the first. A directory that decodes is not
-    a directory that is real, and this decompressor decodes anything.
-    """
     chance = random.Random(seed)
     real = [
         entropy(bytes(decompressor.Decompressor(drom).start(mode, address, 0).read(SAMPLE_BYTES)))
@@ -210,7 +139,6 @@ def separation(
 
 
 def census(entries: "Sequence[tuple[int, int]]", base: int, end: int) -> dict[str, Any]:
-    """What was found, carrying no stream address and no byte of any stream."""
     modes: collections.Counter[str] = collections.Counter()
     for mode, _address in entries:
         modes[str(mode)] += 1
@@ -223,7 +151,6 @@ def census(entries: "Sequence[tuple[int, int]]", base: int, end: int) -> dict[st
 
 
 def recorded(where: Path | str | None = None) -> dict[str, Any]:
-    """The reading this repository carries, or nothing if it is not there."""
     path = Path(where) if where is not None else ROOT / RECORDED
     if not path.is_file():
         return {}
@@ -232,16 +159,9 @@ def recorded(where: Path | str | None = None) -> dict[str, Any]:
 
 
 MINIMUM_ENTRIES = 8
-"""How many ascending entries a base has to yield before it is believed.
-
-A run of ordinary bytes can produce two or three by accident. Eight ascending
-entries with valid modes does not happen by accident, and every real directory
-found here runs to hundreds.
-"""
 
 
 def found_in(image: bytes) -> "tuple[list[tuple[int, int]], int, int, str] | None":
-    """The streams one cartridge holds, where its directory sat, and how it was named."""
     drom = data_rom(image)
     if not drom:
         return None
@@ -253,7 +173,6 @@ def found_in(image: bytes) -> "tuple[list[tuple[int, int]], int, int, str] | Non
 
 
 def read_one(image: bytes) -> dict[str, Any] | None:
-    """Everything one cartridge yields, or nothing if its code names no base."""
     reached = found_in(image)
     if reached is None:
         return None

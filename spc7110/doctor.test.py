@@ -64,13 +64,11 @@ class ExamineTest(unittest.TestCase):
         self.assertIn("snes-spc7110-python", [one.name for one in doctor.examine()])
 
     def test_the_package_and_the_part_do_not_share_a_name(self) -> None:
-        """Two lines with one name in a report is a line somebody misreads."""
         names = [one.name for one in doctor.examine()]
 
         self.assertEqual(len(names), len(set(names)))
 
     def test_the_part_is_reported_with_the_line_pulled(self) -> None:
-        """Driven rather than described, so a part that stopped offering it shows here."""
         found = [one for one in doctor.examine() if one.name == "spc7110"]
 
         self.assertIn("resets and carries nothing across it", found[0].detail)
@@ -119,8 +117,6 @@ class ExamineTest(unittest.TestCase):
 
 
 class DeterminismTest(unittest.TestCase):
-    """That the same stream gives the same bytes here as anywhere else."""
-
     def test_the_report_carries_what_a_known_stream_decodes_to(self) -> None:
         self.assertIn("known stream", [one.name for one in doctor.examine()])
 

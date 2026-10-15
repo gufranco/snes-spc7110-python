@@ -1,23 +1,3 @@
-"""The two tables the decoder is steered by, and the bit shuffles it ends with.
-
-The evolution table is the state machine of an arithmetic coder. Each row is a
-probability and where to go next: one way when the less likely symbol arrives,
-another when the more likely one does, plus a flag saying whether the row is
-allowed to swap which symbol is which. Fifty three rows, and a context is a
-cursor into them.
-
-These are coder parameters rather than content. They say how likely a symbol is
-and which row follows, which describes an algorithm rather than anything the
-cartridge draws. Nothing here is a picture, a sound, or a byte of a game.
-
-The Morton tables are a de-interleave. The decoder produces pixels with their
-bits woven together and the console wants them separated into planes, so the last
-thing each mode does is unweave them. Doing that a bit at a time would be eight
-shifts and eight masks per byte; doing it through a table built once is a lookup,
-which is what the reference does and why the tables are here rather than the
-arithmetic that would replace them.
-"""
-
 from collections.abc import Sequence
 
 EVOLUTION = (
@@ -148,12 +128,10 @@ MORTON32 = _built(_FOUR_PLANE)
 
 
 def morton_2x8(data: int) -> int:
-    """Two eight bit values woven together, taken apart again."""
     return MORTON16[0][data & 0xFF] + MORTON16[1][(data >> 8) & 0xFF]
 
 
 def morton_4x8(data: int) -> int:
-    """Four eight bit values woven together, taken apart again."""
     return (
         MORTON32[0][data & 0xFF]
         + MORTON32[1][(data >> 8) & 0xFF]

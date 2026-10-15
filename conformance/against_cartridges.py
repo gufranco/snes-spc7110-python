@@ -1,29 +1,3 @@
-"""Drive both implementations with the streams real cartridges carry.
-
-The differential beside this one generates its streams from a seed, which is a
-fair test of an arithmetic decoder and is not the data the part was built for. An
-encoder never produced those bytes, so they never take the paths an encoder's
-output takes: the same contexts, the same run lengths, the same escapes, over and
-over in the shapes real graphics have.
-
-This drives the same two implementations with the real thing. Where the streams
-are comes from `cartridges.py`, which reads the directory base out of each game's
-own code rather than searching for a pattern.
-
-**What it establishes.** That the two agree on the data the part actually
-decompressed, not only on noise. It is still two implementations agreeing, and
-they descend from one reverse engineering, so it is not a measurement of silicon
-and the record says so. What it removes is the possibility that they agree only
-because generated streams never reach the paths real ones do.
-
-**What is recorded.** How many streams, how many bytes, how many disagreed, and
-four digests of each cartridge. No compressed byte, no decompressed byte and no
-stream address.
-
-Usage:
-    python3 conformance/against_cartridges.py <cartridges> <output> [--driver PATH]
-"""
-
 import json
 import sys
 from collections.abc import Callable, Sequence
@@ -40,13 +14,6 @@ ROOT = Path(__file__).resolve().parent
 RECORDED = "streams.json"
 
 WINDOW_BYTES = 0x8000
-"""How much of the data ROM one case carries.
-
-A stream is handed to the reference through its standard input, so handing over
-four megabytes per stream would be four megabytes six hundred times. Thirty two
-kilobytes is far more than any of these streams reads before it has produced the
-five hundred and twelve bytes being compared.
-"""
 
 WANTED_BYTES = 512
 
@@ -54,7 +21,6 @@ Ask = Callable[["differential.Case", Path | str], list[int]]
 
 
 def case_for(drom: bytes, mode: int, address: int) -> "differential.Case":
-    """One recorded stream as a case both sides can be handed."""
     return differential.Case(
         seed=0,
         mode=mode,
@@ -66,12 +32,10 @@ def case_for(drom: bytes, mode: int, address: int) -> "differential.Case":
 
 
 def replay(case: "differential.Case") -> list[int]:
-    """The case through the model."""
     return differential.replay(case)
 
 
 def streams_of(image: bytes) -> list[tuple[int, int]]:
-    """Every stream one cartridge's directory names."""
     reached = cartridges.found_in(image)
     return [] if reached is None else reached[0]
 
@@ -81,7 +45,6 @@ def compare(
     driver: Path | str = "",
     ask: Ask = differential.ask,
 ) -> dict[str, Any]:
-    """Every stream in one cartridge, through both implementations."""
     drom = cartridges.data_rom(image)
     found = streams_of(image)
     disagreed = 0
@@ -104,7 +67,6 @@ def compare(
 
 
 def recorded(where: Path | str | None = None) -> dict[str, Any]:
-    """The run this repository carries, or nothing if it is not there."""
     path = Path(where) if where is not None else ROOT / RECORDED
     if not path.is_file():
         return {}

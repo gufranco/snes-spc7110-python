@@ -1,12 +1,3 @@
-"""Hold this decompressor's constants to hardware.json, and to their standing.
-
-No manufacturer document names the SPC7110 and no recording of one is on this
-machine, so both upper rungs of the ladder are empty. Every constant here says
-so. The point of the file is that a reader cannot mistake agreement with a
-reference implementation for a measurement of hardware, and that a constant
-cannot quietly acquire a citation it does not have.
-"""
-
 import json
 import sys
 import unittest

@@ -1,5 +1,3 @@
-"""Finding the decompression directory in a cartridge, and what it establishes."""
-
 import json
 import sys
 import tempfile

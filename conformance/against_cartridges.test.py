@@ -1,5 +1,3 @@
-"""Driving both implementations with the streams real cartridges carry."""
-
 import sys
 import tempfile
 import unittest

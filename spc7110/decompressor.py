@@ -1,38 +1,3 @@
-"""The SPC7110's decompressor: an arithmetic decoder with three output shapes.
-
-Underneath the three modes there is one decoder. It keeps a span and a value,
-narrows the span by a probability drawn from a context, and decides a symbol by
-where the value falls. When the span gets too small it renormalises, pulling bits
-in from the compressed stream one at a time. That much is a textbook binary
-arithmetic coder.
-
-What the modes change is what a symbol means and what happens to it afterwards.
-
-Mode zero decodes one bit at a time and packs eight of them into a byte, so its
-context is chosen from the last few decisions and their inversions. Mode one
-decodes two bits at a time, treats them as a pixel of a four colour tile, and
-keeps a most-recently-used list of the four colours so a repeated colour costs
-less than a new one. Mode two does the same with four bits and sixteen colours,
-and buffers a whole tile before writing it, because the four planes it produces
-do not come out in the order the console wants them.
-
-Two things in here look like mistakes and are not.
-
-The inversion flag lets a context decide that what it has been calling the likely
-symbol is actually the unlikely one, and swap them. It is how the coder adapts
-to a stream that starts one way and continues another.
-
-And the pixel order lists are rotated, not sorted. The colour just decoded goes
-to the front, then the three reference pixels are moved to the front in turn, so
-the list ends up ordered by how recently each colour was useful rather than by
-value. The number the coder produces is an index into that list, so the same
-number means a different colour from one pixel to the next.
-
-The buffer is a ring, and it refills half of itself at a time rather than one
-byte, because the modes produce whole bytes or whole tiles and cannot stop
-partway.
-"""
-
 from typing import override
 
 from . import tables
@@ -58,8 +23,6 @@ MODE2_TILE_BYTES = 16
 
 
 class Context:
-    """One context: which row of the evolution table, and which symbol is likelier."""
-
     __slots__ = ("index", "invert")
 
     def __init__(self, index: int = 0, invert: int = 0) -> None:
@@ -72,8 +35,6 @@ class Context:
 
 
 class Decompressor:
-    """One decompressor, reading a compressed stream and handing back bytes."""
-
     __slots__ = (
         "buffer",
         "contexts",
@@ -121,14 +82,12 @@ class Decompressor:
         self.tile = bytearray()
 
     def take(self) -> int:
-        """One byte of the compressed stream, wrapping when it runs off the end."""
         self.offset %= len(self.source)
         value = self.source[self.offset]
         self.offset += 1
         return value
 
     def start(self, mode: int, offset: int, index: int) -> "Decompressor":
-        """Point the decoder at a stream and run it forward to an output position."""
         if mode not in MODES:
             raise UnknownMode(f"{mode} is not a mode this chip has; it has {MODES}")
         self.mode = mode
@@ -159,7 +118,6 @@ class Decompressor:
         self.held += 1
 
     def take_byte(self) -> int:
-        """One decompressed byte, filling the buffer when it has run out."""
         if self.held == 0:
             if self.mode is None:
                 return 0x00
@@ -170,14 +128,12 @@ class Decompressor:
         return value
 
     def read(self, count: int) -> bytes:
-        """That many decompressed bytes."""
         return bytes(self.take_byte() for _ in range(count))
 
     def _probability(self, context: int) -> int:
         return tables.EVOLUTION[self.contexts[context].index][tables.PROBABILITY]
 
     def _symbol(self, context: int) -> tuple[int, int]:
-        """One symbol, and how far the span had to be renormalised to get it."""
         probability = self._probability(context)
         if self.value <= self.span - probability:
             self.span -= probability
@@ -200,7 +156,6 @@ class Decompressor:
         return flag, shift
 
     def _advance(self, context: int, flag: int, shift: int) -> int:
-        """Fold the symbol into the history and move the context along."""
         state = self.contexts[context]
         invert = state.invert
         self.lps = (self.lps << 1) + flag
@@ -215,7 +170,6 @@ class Decompressor:
         return invert
 
     def _rotate(self, value: int) -> None:
-        """Move a colour to the front of the recency list, keeping the rest in order."""
         self.order.remove(value)
         self.order.insert(0, value)
 
