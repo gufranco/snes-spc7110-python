@@ -6,13 +6,14 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from typing import Any, NoReturn, override
+from typing import Any, NoReturn
 
 ROOT = Path(__file__).resolve().parent.parent
 
 sys.path.insert(0, str(ROOT))
 
-from spc7110 import doctor, models  # noqa: E402
+import spc7110  # noqa: E402
+from spc7110 import doctor  # noqa: E402
 
 SOURCE = ROOT / "spc7110" / "doctor.py"
 
@@ -21,6 +22,14 @@ VERDICT = re.compile(r"^  (\d+ checks, nothing to report|\d+ of \d+ checks did n
 
 class Complaint(Exception):
     pass
+
+
+class WillNotReset:
+    def __init__(self, model: str) -> None:
+        self.model = model
+
+    def reset(self) -> NoReturn:
+        raise Complaint("the line did nothing")
 
 
 def a_finding(
@@ -83,22 +92,25 @@ class ExamineTest(unittest.TestCase):
         self.assertIn("resets and carries nothing across it", found[0].detail)
 
     def test_a_part_that_builds_and_will_not_reset_is_reported_as_broken(self) -> None:
-        class WillNotReset(models.Chip):
-            @override
-            def reset(self) -> NoReturn:
-                raise Complaint("the line did nothing")
+        # Arrange
+        chip = WillNotReset
 
-        found = [one for one in doctor.examine(chip=WillNotReset) if one.name == "spc7110"]
+        # Act
+        found = [one for one in doctor.examine(chip=chip) if one.name == "spc7110"]
 
-        self.assertFalse(found[0].ok)
+        # Assert
+        self.assertEqual([one.ok for one in found], [False])
+        self.assertIn("the line did nothing", found[0].detail)
 
     def test_and_one_finding_per_mode_it_covers(self) -> None:
-        from spc7110 import models
+        # Arrange
+        modes = ["1bpp", "2bpp", "4bpp"]
 
+        # Act
         names = [one.name for one in doctor.examine()]
 
-        for mode in models.MODES:
-            self.assertIn(mode, names, mode)
+        # Assert
+        self.assertEqual([mode for mode in modes if mode in names], modes)
 
     def test_every_finding_carries_a_detail(self) -> None:
         for one in doctor.examine():
@@ -130,15 +142,19 @@ class DeterminismTest(unittest.TestCase):
         self.assertIn("known stream", [one.name for one in doctor.examine()])
 
     def test_a_decoder_that_will_not_decode_is_reported_rather_than_hidden(self) -> None:
+        # Arrange
         def boom(_name: str, _source: Any) -> Any:
             raise Complaint("nothing decodes")
 
-        found = doctor._known(boom)
+        # Act
+        found = doctor.known_stream(boom)
 
+        # Assert
         self.assertFalse(found.ok)
         self.assertIn("nothing decodes", found.detail)
 
     def test_the_bytes_it_reports_are_the_bytes_it_decoded(self) -> None:
+        # Arrange
         class Counting:
             def __init__(self) -> None:
                 self.given = 0
@@ -147,9 +163,22 @@ class DeterminismTest(unittest.TestCase):
                 self.given += 1
                 return self.given
 
-        found = doctor._known(lambda _name, _source: Counting())
+        # Act
+        found = doctor.known_stream(lambda _name, _source: Counting())
 
-        self.assertIn("01 02", found.detail)
+        # Assert
+        self.assertEqual(found.detail, "4bpp of 0..255 begins 01 02 03 04 05 06 07 08")
+
+    def test_the_real_decoder_reports_the_bytes_the_readme_shows(self) -> None:
+        # Arrange
+        def build(name: str, source: bytes) -> Any:
+            return spc7110.Chip("spc7110").decompress(source, name)
+
+        # Act
+        found = doctor.known_stream(build)
+
+        # Assert
+        self.assertEqual(found.detail, "4bpp of 0..255 begins 00 00 00 00 00 00 00 15")
 
 
 class EmptyTest(unittest.TestCase):
@@ -159,18 +188,37 @@ class EmptyTest(unittest.TestCase):
                 self.assertTrue(one.ok)
 
     def test_one_that_accepts_it_anyway_is_a_failure(self) -> None:
-        found = doctor._empty(lambda _source: object())
+        # Arrange
+        def accepts(_source: Any) -> Any:
+            return object()
 
+        # Act
+        found = doctor.empty_stream(accepts)
+
+        # Assert
         self.assertFalse(found.ok)
 
     def test_and_one_that_throws_something_else_is_reported_as_what_it_threw(self) -> None:
+        # Arrange
         def boom(_source: Any) -> Any:
             raise Complaint("wrong complaint")
 
-        found = doctor._empty(boom)
+        # Act
+        found = doctor.empty_stream(boom)
 
+        # Assert
         self.assertFalse(found.ok)
         self.assertIn("wrong complaint", found.detail)
+
+    def test_the_real_decompressor_refuses_it(self) -> None:
+        # Arrange
+        start = spc7110.Decompressor
+
+        # Act
+        found = doctor.empty_stream(start)
+
+        # Assert
+        self.assertEqual((found.ok, found.detail), (True, "refused"))
 
 
 class PinTest(unittest.TestCase):
@@ -288,7 +336,7 @@ class TheDoctorRunsWhereThePackageMightNotImportTest(unittest.TestCase):
         path: list[str] = []
 
         # Act
-        added = doctor._reachable(Path("/somewhere"), path)
+        added = doctor.reachable(Path("/somewhere"), path)
 
         # Assert
         self.assertEqual((added, path), (True, ["/somewhere"]))
@@ -298,7 +346,7 @@ class TheDoctorRunsWhereThePackageMightNotImportTest(unittest.TestCase):
         path = ["/somewhere"]
 
         # Act
-        added = doctor._reachable(Path("/somewhere"), path)
+        added = doctor.reachable(Path("/somewhere"), path)
 
         # Assert
         self.assertEqual((added, path), (False, ["/somewhere"]))

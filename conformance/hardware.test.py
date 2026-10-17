@@ -1,14 +1,31 @@
 import json
 import sys
 import unittest
+from functools import partial
 from pathlib import Path
 from typing import Any, override
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from spc7110 import decompressor
+import spc7110
 
 HERE = Path(__file__).resolve().parent
+
+WORKED = bytes(range(256))
+
+
+def part() -> Any:
+    return spc7110.Chip("spc7110")
+
+
+def held_after_one(mode: int) -> int:
+    started = part().decompress(WORKED, mode)
+    started.read(1)
+    return int(started.held)
+
+
+def first_bit(first_byte: int) -> int:
+    return int(part().decompress(bytes([first_byte]) + bytes(15), 0).read(1)[0] >> 7)
 
 
 def declared(name: str) -> dict[str, Any]:
@@ -62,37 +79,97 @@ class ConstantTest(unittest.TestCase):
         self.facts: dict[str, Any] = declared("hardware.json")["facts"]
 
     def test_the_three_modes_are_the_ones_declared(self) -> None:
+        # Arrange
         modes = self.facts["modes"]["value"]
 
-        self.assertEqual(tuple(modes), decompressor.MODES)
+        # Act
+        started = [part().decompress(WORKED, mode).mode for mode in modes]
+
+        # Assert
+        self.assertEqual(started, modes)
+
+    def test_and_a_mode_past_the_declared_ones_is_refused(self) -> None:
+        # Arrange
+        beyond = max(self.facts["modes"]["value"]) + 1
+
+        # Act
+        starting = partial(part().decompress, WORKED, beyond)
+
+        # Assert
+        self.assertRaises(spc7110.UnknownMode, starting)
 
     def test_the_coder_keeps_the_declared_number_of_contexts(self) -> None:
+        # Arrange
         contexts = self.facts["contexts"]["value"]
 
-        self.assertEqual(contexts, decompressor.CONTEXTS)
+        # Act
+        kept = len(part().decompress(WORKED, 0).contexts)
+
+        # Assert
+        self.assertEqual(kept, contexts)
 
     def test_the_buffer_is_the_declared_size(self) -> None:
+        # Arrange
         buffered = self.facts["bufferBytes"]["value"]
 
-        self.assertEqual(buffered, decompressor.BUFFER_BYTES)
+        # Act
+        held = [held_after_one(mode) for mode in self.facts["modes"]["value"]]
+
+        # Assert
+        self.assertEqual(held, [buffered // 2 - 1] * 3)
 
     def test_and_the_record_says_that_size_is_not_a_character_size(self) -> None:
-        note = self.facts["bufferBytes"]["note"]
+        # Arrange
+        fact = self.facts["bufferBytes"]
 
+        # Act
+        note = fact["note"]
+
+        # Assert
         self.assertIn("coincidence rather than a derivation", note)
 
     def test_the_interval_starts_at_the_declared_width(self) -> None:
-        span = self.facts["spanFull"]["value"]
+        # Arrange
+        boundary = self.facts["spanFull"]["value"] - spc7110.tables.EVOLUTION[0][0]
 
-        self.assertEqual(span, decompressor.SPAN_FULL)
+        # Act
+        first_bits = [first_bit(boundary), first_bit(boundary + 1)]
 
-    def test_and_renormalises_below_the_declared_threshold(self) -> None:
-        threshold = self.facts["renormaliseBelow"]["value"]
+        # Assert
+        self.assertEqual(first_bits, [0, 1])
 
-        self.assertEqual(threshold, decompressor.RENORMALISE_BELOW)
+    def test_and_renormalises_where_the_worked_example_needs(self) -> None:
+        # Arrange
+        started = part().decompress(WORKED, "4bpp")
+
+        # Act
+        decoded = started.read(16)
+
+        # Assert
+        self.assertEqual(
+            (decoded.hex(" "), started.mode, started.offset, started.held),
+            ("00 00 00 00 00 00 00 15 00 f2 00 1d 00 e2 00 19", 2, 12, 16),
+        )
+
+    def test_and_moves_context_zero_where_the_worked_example_says(self) -> None:
+        # Arrange
+        started = part().decompress(WORKED, "1bpp")
+
+        # Act
+        started.read(64)
+
+        # Assert
+        self.assertEqual(repr(started.contexts[0]), "<Context row 48 invert 0>")
 
     def test_the_threshold_is_half_the_interval(self) -> None:
-        self.assertEqual(decompressor.RENORMALISE_BELOW, decompressor.SPAN_FULL >> 1)
+        # Arrange
+        span = self.facts["spanFull"]["value"]
+
+        # Act
+        threshold = self.facts["renormaliseBelow"]["value"]
+
+        # Assert
+        self.assertEqual(threshold, span >> 1)
 
 
 class DivergenceTest(unittest.TestCase):

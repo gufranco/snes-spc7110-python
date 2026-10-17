@@ -8,7 +8,7 @@ SPC7110のデコンプレッサをPythonで実装したものです。3つの出
 [![Release](https://img.shields.io/github/v/release/gufranco/snes-spc7110-python)](https://github.com/gufranco/snes-spc7110-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**3**モード、**102,400**バイトにわたる生成ストリーム**200**本と**316,928**バイトにわたるカートリッジのストリーム**619**本をリファレンスと比較、不一致**0**件、テスト**616**件、ステートメントとブランチのカバレッジ**100%**、依存パッケージなし
+**3**モード、**102,400**バイトにわたる生成ストリーム**200**本と**316,928**バイトにわたるカートリッジのストリーム**619**本をリファレンスと比較、不一致**0**件、テスト**645**件、ステートメントとブランチのカバレッジ**100%**、依存パッケージなし
 
 ```python
 import spc7110

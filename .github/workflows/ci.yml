@@ -78,8 +78,10 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install mypy
-        run: pipx install mypy==1.14.1
+      - name: Install mypy and the build backend's stubs
+        run: |
+          pipx install mypy==1.14.1
+          pipx inject mypy types-setuptools==84.0.0.20260812
 
       - name: Check types
         run: mypy
@@ -98,8 +100,10 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
-      - name: Install coverage
-        run: python -m pip install --disable-pip-version-check coverage==7.6.10
+      - name: Install coverage and the build backend its tests drive
+        run: |
+          python -m pip install --disable-pip-version-check \
+            coverage==7.6.10 setuptools==84.0.0
 
       - name: Read the pinned reference commit
         id: pin

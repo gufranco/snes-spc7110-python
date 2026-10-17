@@ -9,7 +9,7 @@ from typing import Any, override
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def _reachable(root: Path = ROOT, path: list[str] | None = None) -> bool:
+def reachable(root: Path = ROOT, path: list[str] | None = None) -> bool:
     where = sys.path if path is None else path
     if str(root) in where:
         return False
@@ -17,7 +17,7 @@ def _reachable(root: Path = ROOT, path: list[str] | None = None) -> bool:
     return True
 
 
-_reachable()
+reachable()
 
 from spc7110 import decompressor, environment, errors, models  # noqa: E402
 from spc7110.version import VERSION  # noqa: E402
@@ -108,7 +108,7 @@ def _default_chip(name: str) -> Any:
     return models.lookup(name).build()
 
 
-def _known(build: Callable[..., Any]) -> "Finding":
+def known_stream(build: Callable[..., Any]) -> "Finding":
     try:
         chip = build(WITNESS, KNOWN)
         produced = bytes(chip.take_byte() for _ in range(SHOWN))
@@ -126,7 +126,7 @@ def _known(build: Callable[..., Any]) -> "Finding":
     )
 
 
-def _empty(build: Callable[..., Any]) -> "Finding":
+def empty_stream(build: Callable[..., Any]) -> "Finding":
     try:
         build(b"")
     except errors.Empty:
@@ -202,8 +202,8 @@ def examine(
     found = [_python(), _package()]
     found.extend(_chip(name, chip) for name in sorted(models.MODELS))
     found.extend(_mode(name, build) for name in sorted(models.MODES))
-    found.append(_known(build))
-    found.append(_empty(start))
+    found.append(known_stream(build))
+    found.append(empty_stream(start))
     found.append(_reference(pin))
     found.append(_driver(driver))
     return found
