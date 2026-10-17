@@ -1,3 +1,4 @@
+---
 name: CI
 
 on:
@@ -49,9 +50,6 @@ jobs:
       - name: Check that every JSON file is formatted
         run: pnpm run format:check
 
-      # The workflows are the one thing here nothing else checks, and a mistake
-      # in them is only visible once a run has already gone wrong. The archive
-      # is verified by digest before anything in it runs.
       - name: Check the workflows themselves
         run: |
           curl -fsSL -o actionlint.tar.gz \
@@ -64,6 +62,11 @@ jobs:
         env:
           ACTIONLINT_VERSION: "1.7.12"
           ACTIONLINT_SHA256: "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8"
+
+      - name: Lint every YAML file
+        run: |
+          pipx install yamllint==1.38.0
+          yamllint --strict .
 
   types:
     name: Types
@@ -78,9 +81,6 @@ jobs:
       - name: Install mypy
         run: pipx install mypy==1.14.1
 
-      # Strict, with every optional error class the checker offers. The
-      # configuration lives in pyproject.toml so this run and a local one are
-      # the same run.
       - name: Check types
         run: mypy
 
@@ -104,7 +104,13 @@ jobs:
       - name: Read the pinned reference commit
         id: pin
         run: |
-          commit=$(python -c "import json,pathlib;print(json.loads(pathlib.Path('conformance/pinned.json').read_text())['reference']['commit'])")
+          commit=$(python - <<'PY'
+          import json
+          import pathlib
+          held = json.loads(pathlib.Path("conformance/pinned.json").read_text())
+          print(held["reference"]["commit"])
+          PY
+          )
           echo "commit=${commit}" >> "${GITHUB_OUTPUT}"
 
       - name: Cache the reference sources
@@ -113,9 +119,6 @@ jobs:
           path: ~/.cache/snes-spc7110-reference
           key: reference-${{ steps.pin.outputs.commit }}
 
-      # The tests that compare against the reference are the ones the coverage
-      # gate needs, so the driver is built here as well as in the conformance
-      # job. Skipping them would leave the gate measuring less than it claims.
       - name: Build the driver the comparison tests need
         run: python -m conformance.build
 
@@ -147,7 +150,13 @@ jobs:
       - name: Read the pinned reference commit
         id: pin
         run: |
-          commit=$(python -c "import json,pathlib;print(json.loads(pathlib.Path('conformance/pinned.json').read_text())['reference']['commit'])")
+          commit=$(python - <<'PY'
+          import json
+          import pathlib
+          held = json.loads(pathlib.Path("conformance/pinned.json").read_text())
+          print(held["reference"]["commit"])
+          PY
+          )
           echo "commit=${commit}" >> "${GITHUB_OUTPUT}"
 
       - name: Cache the reference sources
@@ -160,8 +169,6 @@ jobs:
       - name: Build the driver around them
         run: python -m conformance.build
 
-      # A pull request runs a fifth of the streams for a quick answer. A push to
-      # main runs all two hundred, because that is the number the claim rests on.
       - name: Compare against the reference
         run: |
           if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
@@ -172,13 +179,9 @@ jobs:
           python -m conformance.differential --seeds "${seeds}"
         shell: bash
 
-      # The run over real cartridge streams is checked into the tree, because it
-      # needs three cartridges nobody can be assumed to hold. This confirms it
-      # still says what the record cites it for, and that it was run against the
-      # commit this build pins rather than some older one.
       - name: The run over real streams still agrees, against this same reference
         run: |
-          python -c "
+          python - <<'PY'
           import sys
           sys.path.insert(0, '.')
           sys.path.insert(0, 'conformance')
@@ -187,9 +190,11 @@ jobs:
           assert found, 'the run over real streams is missing from the tree'
           assert found['disagreed'] == 0, found['first']
           pinned = build.reference()['commit']
-          assert found['reference']['commit'] == pinned, (found['reference']['commit'], pinned)
-          print(f\"  {found['streams']} real streams, {found['bytes']:,} bytes, {found['disagreed']} disagreed\")
-          "
+          recorded = found['reference']['commit']
+          assert recorded == pinned, (recorded, pinned)
+          streams, size, disagreed = found['streams'], found['bytes'], found['disagreed']
+          print(f"  {streams} real streams, {size:,} bytes, {disagreed} disagreed")
+          PY
         shell: bash
 
   speed:
