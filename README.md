@@ -8,7 +8,7 @@ English | [日本語](README.ja.md) | [简体中文](README.zh-Hans.md) | [繁�
 [![Release](https://img.shields.io/github/v/release/gufranco/snes-spc7110-python)](https://github.com/gufranco/snes-spc7110-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**3** modes, **200** generated streams over **102,400** bytes and **619** cartridge streams over **316,928** bytes compared against the reference, **0** disagreements, **645** tests, **100%** statement and branch coverage, no dependencies
+**3** modes, **200** generated streams over **102,400** bytes and **619** cartridge streams over **316,928** bytes compared against the reference, **0** disagreements, **646** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 import spc7110
