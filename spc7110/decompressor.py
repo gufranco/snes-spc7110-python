@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import override
 
 from . import tables
@@ -38,6 +39,7 @@ class Decompressor:
     __slots__ = (
         "buffer",
         "contexts",
+        "fetch",
         "held",
         "inverts",
         "lps",
@@ -56,10 +58,15 @@ class Decompressor:
         "write_at",
     )
 
-    def __init__(self, source: bytes | bytearray) -> None:
-        if not source:
+    def __init__(
+        self,
+        source: bytes | bytearray = b"",
+        fetch: Callable[[int], int] | None = None,
+    ) -> None:
+        if fetch is None and not source:
             raise Empty("a decompressor needs something to decompress")
         self.source = bytes(source)
+        self.fetch = fetch
         self.offset = 0
         self.mode: int | None = None
         self.contexts = [Context() for _ in range(CONTEXTS)]
@@ -82,6 +89,10 @@ class Decompressor:
         self.tile = bytearray()
 
     def take(self) -> int:
+        if self.fetch is not None:
+            fetched = self.fetch(self.offset) & 0xFF
+            self.offset = (self.offset + 1) & WORD_MASK
+            return fetched
         self.offset %= len(self.source)
         value = self.source[self.offset]
         self.offset += 1
@@ -173,75 +184,90 @@ class Decompressor:
         self.order.remove(value)
         self.order.insert(0, value)
 
+    def row(self) -> bytes:
+        if self.mode is None:
+            return b""
+        rows: tuple[Callable[[], bytes], ...] = (self._row0, self._row1, self._row2)
+        return rows[self.mode]()
+
+    def _row0(self) -> bytes:
+        for bit in range(8):
+            mask = (1 << (bit & 3)) - 1
+            context = mask + ((self.inverts & mask) ^ (self.lps & mask))
+            if bit > 3:
+                context += 15
+
+            mps = ((self.out >> 15) & 1) ^ self.contexts[context].invert
+            flag, shift = self._symbol(context)
+            self.out = ((self.out << 1) + (mps if not flag else 1 - mps)) & WORD_MASK
+            self._advance(context, flag, shift)
+        return bytes((self.out & 0xFF,))
+
     def _mode0(self) -> None:
         while self.held < BUFFER_BYTES // 2:
-            for bit in range(8):
-                mask = (1 << (bit & 3)) - 1
-                context = mask + ((self.inverts & mask) ^ (self.lps & mask))
-                if bit > 3:
-                    context += 15
+            self._emit(self._row0()[0])
 
-                mps = ((self.out >> 15) & 1) ^ self.contexts[context].invert
+    def _row1(self) -> bytes:
+        for _ in range(8):
+            a = (self.out >> 2) & 3
+            b = (self.out >> 14) & 3
+            c = (self.out >> 16) & 3
+            context = (b != c) if a == b else (2 if b == c else 4 - (a == c))
+
+            self._rotate(a)
+            real = list(self.order)
+            for reference in (c, b, a):
+                real.remove(reference)
+                real.insert(0, reference)
+
+            for _ in range(2):
                 flag, shift = self._symbol(context)
-                self.out = ((self.out << 1) + (mps if not flag else 1 - mps)) & WORD_MASK
                 self._advance(context, flag, shift)
-            self._emit(self.out)
+                context = 5 + (context << 1) + ((self.lps ^ self.inverts) & 1)
+
+            self.out = ((self.out << 2) + real[(self.lps ^ self.inverts) & 3]) & WORD_MASK
+
+        data = tables.morton_2x8(self.out & 0xFFFF)
+        return bytes(((data >> 8) & 0xFF, data & 0xFF))
 
     def _mode1(self) -> None:
         while self.held < BUFFER_BYTES // 2:
-            for _ in range(8):
-                a = (self.out >> 2) & 3
-                b = (self.out >> 14) & 3
-                c = (self.out >> 16) & 3
-                context = (b != c) if a == b else (2 if b == c else 4 - (a == c))
+            for value in self._row1():
+                self._emit(value)
 
-                self._rotate(a)
-                real = list(self.order)
-                for reference in (c, b, a):
-                    real.remove(reference)
-                    real.insert(0, reference)
+    def _row2(self) -> bytes:
+        for _ in range(8):
+            a = self.out & 15
+            b = (self.out >> 28) & 15
+            c = self.out_high & 15
+            reference = (b != c) if a == b else (2 if b == c else 4 - (a == c))
+            context = 0
 
-                for _ in range(2):
-                    flag, shift = self._symbol(context)
-                    self._advance(context, flag, shift)
-                    context = 5 + (context << 1) + ((self.lps ^ self.inverts) & 1)
+            self._rotate(a)
+            real = list(self.order)
+            for pixel in (c, b, a):
+                real.remove(pixel)
+                real.insert(0, pixel)
 
-                self.out = ((self.out << 2) + real[(self.lps ^ self.inverts) & 3]) & WORD_MASK
+            for _ in range(4):
+                flag, shift = self._symbol(context)
+                invert = self._advance(context, flag, shift)
+                context = tables.MODE2_CONTEXT[context][flag ^ invert] + (
+                    reference if context == 1 else 0
+                )
 
-            data = tables.morton_2x8(self.out & 0xFFFF)
-            self._emit(data >> 8)
-            self._emit(data)
+            self.out_high = ((self.out_high << 4) + ((self.out >> 28) & 15)) & WORD_MASK
+            self.out = ((self.out << 4) + real[(self.lps ^ self.inverts) & 0x0F]) & WORD_MASK
+
+        data = tables.morton_4x8(self.out)
+        return data.to_bytes(4, "big")
 
     def _mode2(self) -> None:
         while self.held < BUFFER_BYTES // 2:
-            for _ in range(8):
-                a = self.out & 15
-                b = (self.out >> 28) & 15
-                c = self.out_high & 15
-                reference = (b != c) if a == b else (2 if b == c else 4 - (a == c))
-                context = 0
-
-                self._rotate(a)
-                real = list(self.order)
-                for pixel in (c, b, a):
-                    real.remove(pixel)
-                    real.insert(0, pixel)
-
-                for _ in range(4):
-                    flag, shift = self._symbol(context)
-                    invert = self._advance(context, flag, shift)
-                    context = tables.MODE2_CONTEXT[context][flag ^ invert] + (
-                        reference if context == 1 else 0
-                    )
-
-                self.out_high = ((self.out_high << 4) + ((self.out >> 28) & 15)) & WORD_MASK
-                self.out = ((self.out << 4) + real[(self.lps ^ self.inverts) & 0x0F]) & WORD_MASK
-
-            data = tables.morton_4x8(self.out)
-            self._emit(data >> 24)
-            self._emit(data >> 16)
-            self.tile.append((data >> 8) & 0xFF)
-            self.tile.append(data & 0xFF)
+            data = self._row2()
+            self._emit(data[0])
+            self._emit(data[1])
+            self.tile.extend(data[2:])
 
             if len(self.tile) == MODE2_TILE_BYTES:
                 for value in self.tile:

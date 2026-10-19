@@ -12,13 +12,11 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from spc7110 import decompressor
+from spc7110 import PROGRAM_BYTES, data_rom, decompressor, directory
 
 ROOT = Path(__file__).resolve().parent
 
 RECORDED = "cartridges.json"
-
-PROGRAM_BYTES = 0x100000
 
 BASE_REGISTER = 0x4801
 
@@ -29,8 +27,6 @@ LOAD_IMMEDIATE = 0xA9
 LOAD_LONG = 0xAF
 
 LOAD_LONG_INDEXED = 0xBF
-
-ENTRY_BYTES = 4
 
 SAMPLE_BYTES = 512
 
@@ -48,24 +44,6 @@ def digests_of(image: bytes) -> dict[str, str]:
         "sha1": hashlib.sha1(image).hexdigest(),
         "sha256": hashlib.sha256(image).hexdigest(),
     }
-
-
-def data_rom(image: bytes) -> bytes:
-    return image[PROGRAM_BYTES:] if len(image) > PROGRAM_BYTES else b""
-
-
-def directory(drom: bytes, base: int) -> tuple[list[tuple[int, int]], int]:
-    found: list[tuple[int, int]] = []
-    at, last = base, -1
-    while at + ENTRY_BYTES <= len(drom):
-        mode = drom[at]
-        address = drom[at + 1] << 16 | drom[at + 2] << 8 | drom[at + 3]
-        if mode not in decompressor.MODES or address >= len(drom) or address < last:
-            break
-        found.append((mode, address))
-        last = address
-        at += ENTRY_BYTES
-    return found, at
 
 
 def bases(image: bytes) -> list[tuple[int, str]]:

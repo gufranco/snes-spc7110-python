@@ -7,6 +7,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import spc7110
 from conformance import build, cartridges, differential
 
 ROOT = Path(__file__).resolve().parent
@@ -45,7 +46,7 @@ def compare(
     driver: Path | str = "",
     ask: Ask = differential.ask,
 ) -> dict[str, Any]:
-    drom = cartridges.data_rom(image)
+    drom = spc7110.data_rom(image)
     found = streams_of(image)
     disagreed = 0
     first: dict[str, Any] | None = None

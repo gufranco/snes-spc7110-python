@@ -23,36 +23,6 @@ def _a_data_rom(entries: list[tuple[int, int]], base: int = 8, size: int = 0x100
     return held
 
 
-class DirectoryTest(unittest.TestCase):
-    def test_entries_come_back_as_a_mode_and_an_address(self) -> None:
-        drom = _a_data_rom([(2, 0x1000), (0, 0x2000)])
-
-        self.assertEqual(cartridges.directory(bytes(drom), 8)[0], [(2, 0x1000), (0, 0x2000)])
-
-    def test_it_stops_where_the_addresses_stop_ascending(self) -> None:
-        drom = _a_data_rom([(2, 0x2000), (2, 0x1000)])
-
-        self.assertEqual(len(cartridges.directory(bytes(drom), 8)[0]), 1)
-
-    def test_it_stops_at_a_mode_the_part_does_not_have(self) -> None:
-        drom = _a_data_rom([(2, 0x1000), (7, 0x2000)])
-
-        self.assertEqual(len(cartridges.directory(bytes(drom), 8)[0]), 1)
-
-    def test_it_stops_at_an_address_past_the_end(self) -> None:
-        drom = _a_data_rom([(2, 0x1000), (2, 0x200000)])
-
-        self.assertEqual(len(cartridges.directory(bytes(drom), 8)[0]), 1)
-
-    def test_it_reports_where_the_directory_ended(self) -> None:
-        drom = _a_data_rom([(2, 0x1000), (0, 0x2000)])
-
-        self.assertEqual(cartridges.directory(bytes(drom), 8)[1], 8 + 8)
-
-    def test_a_base_past_the_end_yields_nothing(self) -> None:
-        self.assertEqual(cartridges.directory(bytes(16), 0x1000)[0], [])
-
-
 class BaseTest(unittest.TestCase):
     def test_three_immediate_loads_give_the_base(self) -> None:
         image = bytearray(b"\xea" * 0x10000)
@@ -150,19 +120,6 @@ class BaseTest(unittest.TestCase):
         image[0x100:0x105] = bytes((0xA9, 0x08, 0x8D, 0x04, 0x48))
 
         self.assertEqual(cartridges.bases(bytes(image)), [])
-
-
-class SplitTest(unittest.TestCase):
-    def test_the_program_rom_is_the_first_megabyte(self) -> None:
-        self.assertEqual(cartridges.PROGRAM_BYTES, 0x100000)
-
-    def test_the_data_rom_is_what_follows_it(self) -> None:
-        image = b"\x11" * 0x100000 + b"\x22" * 0x40000
-
-        self.assertEqual(set(cartridges.data_rom(image)), {0x22})
-
-    def test_an_image_smaller_than_the_program_rom_has_no_data_rom(self) -> None:
-        self.assertEqual(cartridges.data_rom(b"\x11" * 0x1000), b"")
 
 
 class CensusTest(unittest.TestCase):

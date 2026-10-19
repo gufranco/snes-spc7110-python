@@ -1,6 +1,6 @@
 # SPC7110 解壓器
 
-以 Python 實現的 SPC7110 解壓器，涵蓋其全部三種輸出模式，逐位元組與 snes9x 參考實現保持一致。
+以 Python 實現的 SPC7110：其解壓器涵蓋全部三種輸出模式，逐位元組與 snes9x 保持一致；主機存取它所經的暫存器則以 ares 為準。
 
 [English](README.md) | [日本語](README.ja.md) | [简体中文](README.zh-Hans.md) | 繁體中文（香港）
 
@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/snes-spc7110-python)](https://github.com/gufranco/snes-spc7110-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**3** 種模式，**200** 條生成的數據流共 **102,400** 位元組，以及 **619** 條卡帶數據流共 **316,928** 位元組，均與參考實現比對，**0** 處分歧，**648** 項測試，**100%** 語句與分支覆蓋率，無任何依賴
+**3** 種模式，**200** 條生成的數據流共 **102,400** 位元組，以及 **619** 條卡帶數據流共 **316,928** 位元組，均與參考實現比對，**619** 條卡帶數據流及 **231** 個暫存器驅動的案例經由暫存器讀取並與 ares 比對，**0** 處分歧，**755** 項測試，**100%** 語句與分支覆蓋率，無任何依賴
 
 ```python
 import spc7110
@@ -55,7 +55,7 @@ python3 spc7110/doctor.py
 
 ## 介面
 
-`spc7110.Chip(model)` 用於建立晶片。`model` 為必填，沒有預設值。名稱比對時不區分大小寫、連字號、底線或空格，晶片會在 `model` 上保留其標準名稱。
+`spc7110.Chip(model, rom=None, ram=None, seed=7110)` 用於建立晶片。`model` 為必填，沒有預設值。名稱比對時不區分大小寫、連字號、底線或空格，晶片會在 `model` 上保留其標準名稱。`rom` 是整個卡帶映像：首 1 MiB 是程式 ROM，其餘是數據 ROM。省略時，晶片會以 `seed` 打亂產生一個自己的 2 MiB 映像。`ram` 是存檔 RAM，類型為 `bytearray`，按傳入的物件原樣保留；省略時晶片不回應 `$6000-$7FFF`。所有暫存器上電時都按 `seed` 打亂，在 `reset()` 之前沒有任何暫存器具有確定的值。
 
 | 型號      | 別名                       | 模式                   |
 | :-------- | :------------------------- | :--------------------- |
@@ -66,7 +66,18 @@ python3 spc7110/doctor.py
 | 呼叫                                          | 作用                                                                                                                                                                         |
 | :-------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `decompress(source, mode, offset=0, index=0)` | 以 `mode` 開始解壓 `source`，並傳回一個 `Decompressor`。`mode` 可以是名稱、別名或模式編號。`offset` 是 `source` 中開始的位元組。`index` 是首次讀取前要捨棄的已解碼位元組數目 |
-| `reset()`                                     | 傳回晶片本身。解壓過程不會留下任何狀態，因此沒有需要清除的內容                                                                                                               |
+| `reset()`                                     | 設定 ares 上電時設定的暫存器值，並捨棄任何正在等待的操作。傳回晶片本身                                                                                                       |
+| `read(address)`                               | 讀取 24 位元 CPU 位址。傳回 `int`；對於 `$4800-$483F` 內晶片不驅動的暫存器，傳回 `None`                                                                                      |
+| `write(address, value)`                       | 把 `value` 的低 8 位元寫入 24 位元 CPU 位址。寫入 ROM 不會改變任何內容                                                                                                       |
+| `tick(clocks=1)`                              | 讓晶片前進 `clocks` 個主時鐘，每秒 21,477,272 個。解壓啟動、乘法及除法會在之後的某個時鐘完成。傳回晶片本身                                                                   |
+
+| 屬性      | 意思                                                |
+| :-------- | :-------------------------------------------------- |
+| `rom`     | 傳入的或自行建立的卡帶映像                          |
+| `program` | 程式 ROM，即 `rom` 的首 1 MiB，類型為 `bytes`       |
+| `data`    | 數據 ROM，即首 1 MiB 之後的全部內容，類型為 `bytes` |
+| `ram`     | 傳入的存檔 RAM，或 `None`                           |
+| `model`   | 標準的型號名稱                                      |
 
 `Decompressor` 是 `decompress` 傳回的物件。
 
@@ -74,12 +85,14 @@ python3 spc7110/doctor.py
 | :--------------------------- | :----------------------------------------------------------------------- |
 | `read(count)`                | 以 `bytes` 傳回接下來 `count` 個已解碼位元組                             |
 | `take_byte()`                | 以 `int` 傳回下一個已解碼位元組                                          |
+| `row()`                      | 解碼一行八個像素，傳回其 1、2 或 4 個位元組，不經緩衝區                  |
 | `start(mode, offset, index)` | 以模式編號 `mode` 重新開始解壓同一來源，並清除所有上下文。傳回解壓器本身 |
 | `mode`                       | 模式編號，開始之前為 `None`                                              |
 | `offset`                     | 解碼器將讀取的下一個來源位元組的索引                                     |
 | `held`                       | 在 64 位元組緩衝區中等待讀取的已解碼位元組數目                           |
 | `contexts`                   | 32 個機率上下文，每個都是 `Context`                                      |
-| `source`                     | 壓縮數據流，已複製為 `bytes`                                             |
+| `source`                     | 壓縮數據流，已複製為 `bytes`；基於 `fetch` 建立時為 `b""`                |
+| `fetch`                      | 讀取每個來源位元組時所呼叫的函數，參數為偏移量；沒有時為 `None`          |
 
 解碼器的輸入會循環。讀取超出 `source` 結尾時，會從第 0 個位元組繼續，因為參考實現也是這樣做的。
 
@@ -119,9 +132,10 @@ Empty a decompressor needs something to decompress
 | :-------------------------- | :---------------------------------------------------------------------- |
 | `spc7110.UnknownModelError` | `Chip` 沒有獲得型號，或獲得的名稱不對應任何晶片。訊息會列出可接受的名稱 |
 | `spc7110.UnknownMode`       | 模式名稱、別名或編號不屬於這三種之一。訊息會列出三個名稱                |
-| `spc7110.Empty`             | 來源為空                                                                |
+| `spc7110.Empty`             | 來源為空，卡帶映像在首 1 MiB 之後沒有數據 ROM，或傳入的存檔 RAM 為空    |
+| `spc7110.OutOfRange`        | `read` 或 `write` 收到晶片不解碼的位址，或超出 24 位元的位址            |
 
-這三種錯誤只在一處定義，即 [`spc7110/errors.py`](spc7110/errors.py)。
+這四種錯誤只在一處定義，即 [`spc7110/errors.py`](spc7110/errors.py)。
 
 ```python
 import spc7110
@@ -150,17 +164,21 @@ spc7120 is not a part this package covers; it has spc7110
 
 ### 模組內容
 
-| 名稱                           | 內容                                                                                                                                                  |
-| :----------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `spc7110.MODELS`               | 唯一的 `Model` 記錄，以標準名稱為鍵。`Model` 帶有 `name`、`aliases`、`modes`、`summary` 和 `build()`                                                  |
-| `spc7110.MODES`                | 三個 `Mode` 記錄，以名稱為鍵                                                                                                                          |
-| `spc7110.Mode`                 | 模式記錄：`number`、`name`、以每像素位元數表示的 `depth`、`aliases`、`summary`，以及用於開始一個 `Decompressor` 的 `build(source, offset=0, index=0)` |
-| `spc7110.mode_named(mode)`     | 給定 `int` 編號，或給定字串形式的名稱或別名時，傳回對應的 `Mode`。以字串寫成的編號，例如 `"2"`，會引發 `UnknownMode`                                  |
-| `spc7110.Decompressor(source)` | 解碼器本身，直接由數據流建立。在 `start` 指定模式之前，它不會產生任何輸出                                                                             |
-| `spc7110.Context`              | 一個機率上下文：`index` 是它在演化表中的行，`invert` 是它目前視為較可能出現的符號                                                                     |
-| `spc7110.CONTEXTS`             | 32，即上下文的數目                                                                                                                                    |
-| `spc7110.tables`               | `EVOLUTION` 是 53 行機率、各符號之後的下一行及反轉旗標，`MODE2_CONTEXT` 是模式 2 的 32 個上下文轉移                                                   |
-| `spc7110.__version__`          | 已安裝的版本                                                                                                                                          |
+| 名稱                            | 內容                                                                                                                                                            |
+| :------------------------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `spc7110.MODELS`                | 唯一的 `Model` 記錄，以標準名稱為鍵。`Model` 帶有 `name`、`aliases`、`modes`、`summary` 和 `build()`                                                            |
+| `spc7110.MODES`                 | 三個 `Mode` 記錄，以名稱為鍵                                                                                                                                    |
+| `spc7110.Mode`                  | 模式記錄：`number`、`name`、以每像素位元數表示的 `depth`、`aliases`、`summary`，以及用於開始一個 `Decompressor` 的 `build(source, offset=0, index=0)`           |
+| `spc7110.mode_named(mode)`      | 給定 `int` 編號，或給定字串形式的名稱或別名時，傳回對應的 `Mode`。以字串寫成的編號，例如 `"2"`，會引發 `UnknownMode`                                            |
+| `spc7110.Decompressor(source)`  | 解碼器本身，直接由數據流建立。在 `start` 指定模式之前，它不會產生任何輸出。`Decompressor(fetch=f)` 改為透過 `f(offset)` 讀取，晶片讀取數據 ROM 用的正是這種方式 |
+| `spc7110.PROGRAM_BYTES`         | 1,048,576，卡帶映像開頭的程式 ROM 的大小                                                                                                                        |
+| `spc7110.data_rom(image)`       | 卡帶映像的數據 ROM，即 `PROGRAM_BYTES` 之後的全部內容；之後沒有內容時為 `b""`                                                                                   |
+| `spc7110.directory(drom, base)` | 位於 `base` 的數據流目錄：每次讀取四個位元組，直至遇到晶片沒有的模式、超出末端的位址或比上一個更小的位址為止，傳回 `(mode, address)` 項目清單以及停止處的偏移量 |
+| `spc7110.chip`                  | 決定時序的常數：`MASTER_CLOCK_HZ`、`DECOMPRESSION_CLOCKS`、`MULTIPLY_CLOCKS`、`DIVIDE_CLOCKS` 及 `UNSET_SEED`                                                   |
+| `spc7110.Context`               | 一個機率上下文：`index` 是它在演化表中的行，`invert` 是它目前視為較可能出現的符號                                                                               |
+| `spc7110.CONTEXTS`              | 32，即上下文的數目                                                                                                                                              |
+| `spc7110.tables`                | `EVOLUTION` 是 53 行機率、各符號之後的下一行及反轉旗標，`MODE2_CONTEXT` 是模式 2 的 32 個上下文轉移                                                             |
+| `spc7110.__version__`           | 已安裝的版本                                                                                                                                                    |
 
 ```python
 import spc7110
@@ -206,6 +224,69 @@ MODE1 2bpp
 
 **顏色列表是旋轉的，不是排序的。** 剛解碼的顏色移到最前，然後三個參考像素依次移到最前。編解碼器產生的數字是該列表的索引，因此同一個數字在相鄰像素之間代表不同的顏色。把列表排序或按數值順序保存的模型，能正確解碼最初幾個像素，之後便會漂移。
 
+## 透過暫存器驅動它
+
+遊戲從不直接把數據流交給晶片。它把目錄基址寫入 `$4801-$4803`，把索引寫入 `$4804`，以 `$4806` 啟動，等待 `$480C` 的第 7 位元，然後讀取 `$4800`。晶片透過自己的數據 ROM 映射讀取目錄項目和數據流，因此數據流永遠不會越過任何東西的末端而耗盡。
+
+```python
+import random
+
+import spc7110
+
+data = bytearray(random.Random(1).randbytes(0x10000))
+data[8:12] = bytes((1, 0x00, 0x20, 0x00))
+chip = spc7110.Chip("spc7110", rom=bytes(spc7110.PROGRAM_BYTES) + data).reset()
+
+for register, value in ((0x4801, 0x08), (0x4802, 0x00), (0x4803, 0x00), (0x4804, 0x00)):
+    chip.write(register, value)
+chip.write(0x4806, 0x00)
+
+print(hex(chip.tick(20).read(0x480C)), hex(chip.tick(1).read(0x480C)))
+print(bytes(chip.read(0x4800) for _ in range(16)).hex(" "))
+print(chip.read(0xD00000) == data[0], chip.read(0x581234))
+```
+
+```
+0x0 0x80
+46 a0 43 65 12 74 46 a1 97 b9 73 99 33 92 1b 32
+True 0
+```
+
+`$000008` 的目錄項目指向 `$002000` 的模式 1。啟動在第 21 個主時鐘就緒：一個時鐘用於察覺請求，另外 20 個是 ares 所計的。重設後 `$4831` 為 0，所以 bank `$D0` 讀取數據 ROM 的第一個兆位元組；bank `$58` 以 `$4808` 的身份回應，讀出 0。
+
+| 暫存器        | 單元       | 作用                                                                                                                            |
+| :------------ | :--------- | :------------------------------------------------------------------------------------------------------------------------------ |
+| `$4800-$480C` | 解壓       | 目錄基址、索引、跳過、步長、長度計數器、控制及狀態；`$4800` 以圖塊為單位交出已解碼的位元組                                      |
+| `$4810-$481A` | 數據埠     | 在偏移量加上可選調整值的位置讀取數據 ROM，每次前進 1 或一個步長，可帶符號亦可不帶符號                                           |
+| `$4820-$482F` | 運算       | 16 乘 16 的乘法及 32 除以 16 的除法，可帶符號亦可不帶符號；分別需要 30 及 40 個主時鐘，結果寫入之前 `$482F` 的第 7 位元表示忙碌 |
+| `$4830-$4834` | 記憶體控制 | `$4830` 第 7 位元的存檔 RAM 啟用、bank `$D0`、`$E0` 及 `$F0` 所顯示的數據 ROM 兆位元組、數據 ROM 的大小以及第二個程式 bank      |
+
+```python
+import spc7110
+
+chip = spc7110.Chip("spc7110").reset()
+for register, value in ((0x4820, 0x34), (0x4821, 0x12), (0x4824, 0x78), (0x4825, 0x56)):
+    chip.write(register, value)
+
+print(hex(chip.read(0x482F)), hex(chip.tick(31).read(0x482F)))
+print(bytes(chip.read(0x4828 + at) for at in range(4))[::-1].hex())
+
+for address in (0x7E0000, 0x004840):
+    try:
+        chip.read(address)
+    except spc7110.OutOfRange as error:
+        print(error)
+```
+
+```
+0x81 0x1
+06260060
+0x7e0000 is not an address the SPC7110 answers
+0x004840 is not an address the SPC7110 answers
+```
+
+乘法在完成時才讀取運算元，所以在這 30 個時鐘內寫入 `$4820` 會改變乘積。`$4840-$4842` 是晶片旁邊的實時時鐘，由 [snes-rtc-python](https://github.com/gufranco/snes-rtc-python) 建模，因此這裏會拒絕這些位址。ares 和 snes9x 對某個暫存器意見不一時，晶片依從 ares，[`conformance/divergences.json`](conformance/divergences.json) 記錄了兩者。
+
 ## 它是否正確
 
 目前不知道有這款晶片的任何廠商文件，這台機器上也沒有從真實 SPC7110 取得的任何錄製數據。廠商文件和硬件錄製數據這兩級證據在 [`conformance/hardware.json`](conformance/hardware.json) 中均標明為空。每個輸出值都依賴於與 snes9x 解壓器的一致。
@@ -231,6 +312,10 @@ python3 -m conformance.differential
 
 每個生成的案例包含來自帶種子產生器的 8,192 個位元組、由種子選定的模式、隨機的起始偏移，以及在奇數種子時最多 63 個被捨棄的位元組。兩邊都以相同的三項設定解碼 512 個位元組。執行器會列印最先出現分歧的 5 個案例。
 
+### 經由暫存器，與 ares 比對
+
+暫存器介面以提交 `9408cb43d4948fc3ea6e152a307a34348df3fe04` 的 ares 為準。我們把 ares 的解壓器原樣編譯進一個重現其圖塊邏輯的測試框架，並與 `spc7110.Chip` 一同經由暫存器驅動，涵蓋 619 條卡帶數據流及 231 個暫存器驅動的案例，當中包括隨機的跳過及步長：共 375,040 位元組，0 處分歧。[`conformance/hardware.json`](conformance/hardware.json) 在 `registerInterface` 下記錄了這次運行。測試框架沒有隨倉庫發佈，所以這是一次附日期的量度，而不是流水線會重複執行的檢查；而且 ares、bsnes 及 snes9x 都源自同一次逆向工程。
+
 ### 來自卡帶的數據流
 
 隨機位元組會驅使解碼器進入編碼器永遠不會產生的狀態。真實數據流則驅使它進入編碼器會產生的狀態。兩者都會檢查。
@@ -254,7 +339,7 @@ print(bytes(differential.replay(case)[:8]).hex(" "))
 41 2f 61 31 d1 3d 7e 90
 ```
 
-6 個未解決的問題，以及可以解決每個問題的測量，列於 [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)。當兩個來源出現分歧時，兩者都保留在 [`conformance/divergences.json`](conformance/divergences.json) 中，並附上可以判定的方法。
+11 個未解決的問題，以及可以解決每個問題的測量，列於 [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)。當兩個來源出現分歧時，兩者都保留在 [`conformance/divergences.json`](conformance/divergences.json) 中，並附上可以判定的方法。
 
 ## 參與開發
 
@@ -281,13 +366,15 @@ python3 -m conformance.speed
 
 每個模組旁邊都有一個以其命名的測試檔案，每個測試檔案都能獨立執行。覆蓋率是硬性關卡檢查，要求 100% 語句與分支覆蓋率。吞吐量下限在覆蓋率步驟之外執行，因此它量度的是解碼器，而不是追蹤器。
 
-這些表格隨附於 [`spc7110/tables.py`](spc7110/tables.py)。它們是編解碼器參數：一個符號出現的可能性，以及接下來是哪一行。解壓器以位元組形式接收數據流。數據流位於卡帶中的哪個位置屬於映射問題，晶片的映射器和實時時鐘是獨立的套件。
+這些表格隨附於 [`spc7110/tables.py`](spc7110/tables.py)。它們是編解碼器參數：一個符號出現的可能性，以及接下來是哪一行。晶片透過自身暫存器所設定的數據 ROM 映射讀取數據流。它旁邊的實時時鐘是獨立的套件。
 
 ## 參考資料
 
 本儲存庫不含任何文件，也不含任何卡帶數據。
 
 - snes9x，提交 `2971061cf07fdc6fc7d18883edf4e648eb16a6d2` 中的 `spc7110dec.cpp` 和 `spc7110dec.h`，https://github.com/snes9xgit/snes9x ，用於所有輸出值。它在建置時取得並編譯，從不在此重新分發。
+- ares，提交 `9408cb43d4948fc3ea6e152a307a34348df3fe04` 中的 `ares/sfc/coprocessor/spc7110`，https://github.com/ares-emulator/ares ，用於暫存器介面、其時序及 bank 映射。只採用事實，不取任何程式碼。
+- snes9x，提交 `1bcc369e89f08243e0a462882fb1f3e42e51de3a` 中的 `spc7110emu.cpp` 和 `spc7110.cpp`，作為暫存器介面的第二個證據來源閱讀。
 
 ## 引用本專案
 

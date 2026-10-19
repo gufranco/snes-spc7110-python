@@ -2,7 +2,7 @@
   "comment": "Where each fact about this chip stands, given that no document names the part.",
   "sources": {
     "document": "None.",
-    "reference": "snes9x, pinned by commit in conformance/pinned.json, built and driven by conformance/build.py.",
+    "reference": "snes9x, pinned by commit in conformance/pinned.json, built and driven by conformance/build.py, for the decompressor's output. ares at commit 9408cb43d4948fc3ea6e152a307a34348df3fe04 for the register interface, read beside snes9x at commit 1bcc369e89f08243e0a462882fb1f3e42e51de3a.",
     "recording": "None. No capture from a real SPC7110 is on this machine."
   },
   "divergences": [
@@ -36,19 +36,19 @@
       "documentSays": "Nothing.",
       "referenceDoes": "Produces the bytes the differential run compares against.",
       "packageFollows": "reference",
-      "reasoning": "The differential builds the reference from pinned source and drives both with the same input, so a disagreement is real and a agreement means the two programs agree. Where snes9x is wrong this is wrong with it, and nothing here could tell. A second reference would be the obvious next rung and there is none to reach. Checked on 2026-08-25: the pinned reference's own header names byuu and neviksti, and bsnes, the only other implementation of this part, names neviksti and talarubi. Both descend from one reverse engineering, so running the two and requiring them to agree would be running one implementation twice and calling it corroboration. Since 2026-08-26 the agreement covers real data as well as generated: 619 streams taken from the three cartridges, 316,928 bytes compared, none disagreeing. That removes one way the two could have agreed for the wrong reason, which is that generated streams never take the paths an encoder's output takes. It does not change what the agreement is worth against silicon.",
+      "reasoning": "The differential builds the reference from pinned source and drives both with the same input, so a disagreement is real and a agreement means the two programs agree. Where snes9x is wrong this is wrong with it, and nothing here could tell. A second reference would be the obvious next rung and there is none to reach. Checked on 2026-08-25: the pinned reference's own header names byuu and neviksti, and bsnes, like ares, names neviksti as the original and talarubi as the optimisation. Both descend from one reverse engineering, so running the two and requiring them to agree would be running one implementation twice and calling it corroboration. Since 2026-08-26 the agreement covers real data as well as generated: 619 streams taken from the three cartridges, 316,928 bytes compared, none disagreeing. That removes one way the two could have agreed for the wrong reason, which is that generated streams never take the paths an encoder's output takes. It does not change what the agreement is worth against silicon. Since 2026-10-19 ares's decompressor, driven through the register interface, agrees with this one on the same 619 streams and on 231 register-driven cases with seeks and strides. That is a third program from the same reverse engineering, not an independent witness.",
       "wouldSettleIt": "A recording taken off a real SPC7110: feed a known stream and capture what comes out. A second implementation would not do it, because every one that exists descends from the same reverse engineering."
     },
     {
       "id": "nothing-here-is-a-timing-claim",
       "parts": ["spc7110"],
       "severity": "medium",
-      "status": "notModelled",
+      "status": "open",
       "documentSays": "Nothing.",
-      "referenceDoes": "Decodes on demand, as this package does.",
+      "referenceDoes": "ares charges 20 master clocks to start a decompression, 30 to multiply and 40 to divide, each after one clock of the loop that notices the request. snes9x does all three at once.",
       "packageFollows": "reference",
-      "reasoning": "How long a decode takes, and whether a console reading the output can outrun it, is not modelled. On real hardware that decides whether a game has to wait.",
-      "wouldSettleIt": "A measurement on a real cartridge, or a datasheet."
+      "reasoning": "Since 2026-10-19 the part is clocked with tick() and follows ares's figures, because they are the only ones any implementation states: a start is ready on the 21st master clock after the write, a multiply on the 31st, a divide on the 41st. Those are an emulator's figures, not a measurement, and the decompressor's own work after the start costs nothing in either implementation.",
+      "wouldSettleIt": "A bus capture timing $480C after a write to $4806 and $482F after a write to $4825 or $4827."
     },
     {
       "id": "no-real-stream-has-been-found-to-drive-it-with",
@@ -60,6 +60,72 @@
       "packageFollows": "reference",
       "reasoning": "Closed on 2026-08-26. The first attempt searched for the directory by pattern and found a run of 254 plausible entries whose output had mean entropy 7.233 against 7.144 from random offsets, a separation too small to tell a stream from a coincidence, so it was not adopted. The mistake was searching at all. The part takes the directory base from three registers the game writes, so the base is a constant in the cartridge's own code: conformance/cartridges.py reads it out of each of the three programs, in the three different forms they use to write it. Every one of them names 0x000008, every directory ends exactly where its first stream begins, and the output now separates cleanly: entropy 2.685, 3.654 and 3.603 against noise floors of 7.367, 7.243 and 7.104. That is 619 real streams across all three modes, and conformance/against_cartridges.py drives both implementations with every one of them.",
       "wouldSettleIt": "Settled. The streams are reached and both implementations agree on all 619."
+    },
+    {
+      "id": "when-the-directory-is-read-and-how-a-start-seeks",
+      "parts": ["spc7110"],
+      "severity": "medium",
+      "status": "open",
+      "documentSays": "Nothing.",
+      "referenceDoes": "ares: writing $4804 reads the directory entry; writing $4806 starts. A seek of $4805-$4806 rows happens only with bit 1 of $480B set, and with bit 0 set each row is followed by $4807 rows skipped rather than one. $4808 reads zero. snes9x: writing $4806 reads the entry and starts in one step, always skips ($4805 | $4806 << 8) << mode bytes, has no stride, and keeps $4808 as a plain register.",
+      "packageFollows": "reference",
+      "reasoning": "Both are byuu's, and ares is the later. Which order the three cartridges rely on was not measured; a game writing $4806 without a fresh $4804 would tell the two apart.",
+      "wouldSettleIt": "A bus capture of a game starting two streams with one $4804 write, or of a game using $480B."
+    },
+    {
+      "id": "what-bit-seven-of-the-status-registers-means",
+      "parts": ["spc7110"],
+      "severity": "medium",
+      "status": "open",
+      "documentSays": "Nothing.",
+      "referenceDoes": "ares: bit 7 of $480C is set when a start is ready and cleared by the next write to $4806; bit 7 of $482F is set while a multiply or divide runs and cleared when it ends. Reading either changes nothing. snes9x: both bits are set when the work is done, and reading the register clears it.",
+      "packageFollows": "reference",
+      "reasoning": "The two give opposite meanings to $482F bit 7. A game polling it works under either only because snes9x finishes before the poll.",
+      "wouldSettleIt": "A bus capture of $482F read during and after a divide."
+    },
+    {
+      "id": "what-writing-the-arithmetic-setting-does",
+      "parts": ["spc7110"],
+      "severity": "low",
+      "status": "open",
+      "documentSays": "Nothing.",
+      "referenceDoes": "ares: $482E keeps bit 0, the sign, and nothing else happens. snes9x: $482E clears $4820 to $482D before storing the byte.",
+      "packageFollows": "reference",
+      "reasoning": "A game writing $482E between loading operands and starting would get different answers.",
+      "wouldSettleIt": "A bus capture of the operands read back after a write to $482E."
+    },
+    {
+      "id": "how-the-data-port-steps",
+      "parts": ["spc7110"],
+      "severity": "medium",
+      "status": "open",
+      "documentSays": "Nothing.",
+      "referenceDoes": "ares: the port reads at offset plus the adjust when bit 1 of $4818 is set; reading $4810 steps the offset, or the adjust when bit 4 is set, by one or by $4816-$4817; writes to $4813 and $4818 refetch; bits 5 and 6 pick $4814, $4815 or a read of $481A as the moment the adjust is added to the offset. snes9x: the port answers nothing until all three of $4811 to $4813 have been written, latches $4814 and $4815 as a pair, adds one to the adjust on every read with bit 1 set, and adds the adjust on a read of $481A only when bits 5 and 6 are both set.",
+      "packageFollows": "reference",
+      "reasoning": "The two disagree on almost every step, and the data port is the part of the chip games use for tables and text.",
+      "wouldSettleIt": "A bus capture of a game reading text through $4810, compared address by address."
+    },
+    {
+      "id": "what-a-stream-reads-past-the-end-of-the-data-rom",
+      "parts": ["spc7110"],
+      "severity": "low",
+      "status": "open",
+      "documentSays": "Nothing.",
+      "referenceDoes": "ares: a read masks the address to the size $4834 names, 1, 2, 4 or 8 megabytes, reads zero from the upper half below 8, and mirrors what is left onto the data ROM the way its bus mirrors any chip. snes9x: a read wraps the address by the data ROM's own size and ignores $4834.",
+      "packageFollows": "reference",
+      "reasoning": "This dissolves the question of what the chip does with a stream that runs out: through the registers a stream reads the mapped data ROM, which never runs out. What remains is which byte a read past the end sees, and the two implementations mirror differently.",
+      "wouldSettleIt": "A cartridge whose data ROM is not a power of two, read past its end on hardware."
+    },
+    {
+      "id": "a-signed-divide-of-the-most-negative-dividend-by-minus-one",
+      "parts": ["spc7110"],
+      "severity": "low",
+      "status": "open",
+      "documentSays": "Nothing.",
+      "referenceDoes": "ares: computes it in C, where the result is undefined behaviour. snes9x: the same, in C.",
+      "packageFollows": "neither",
+      "reasoning": "No implementation defines it, so this package wraps the quotient to 0x80000000 and the remainder to zero, and says so here rather than presenting it as the part's answer.",
+      "wouldSettleIt": "A divide of 0x80000000 by 0xFFFF on hardware."
     }
   ]
 }

@@ -290,5 +290,81 @@ class ReadingTest(unittest.TestCase):
         self.assertEqual(shown, "<Context row 0 invert 0>")
 
 
+def noted(asked: list[int], address: int) -> int:
+    asked.append(address)
+    return 0
+
+
+class MappedSourceTest(unittest.TestCase):
+    def test_a_decompressor_over_a_fetch_reads_what_one_over_bytes_reads(self) -> None:
+        # Arrange
+        source = stream(length=4096)
+        mapped = spc7110.Decompressor(fetch=source.__getitem__)
+
+        # Act
+        found = [mapped.start(mode, 100, 0).read(64) for mode in MODE_NUMBERS]
+
+        # Assert
+        self.assertEqual(
+            found, [started(mode, source=source, offset=100).read(64) for mode in MODE_NUMBERS]
+        )
+
+    def test_it_asks_the_fetch_for_each_address_in_turn_wrapping_at_thirty_two_bits(self) -> None:
+        # Arrange
+        asked: list[int] = []
+        mapped = spc7110.Decompressor(fetch=partial(noted, asked))
+
+        # Act
+        mapped.start(0, 0xFFFFFFFF, 0)
+
+        # Assert
+        self.assertEqual(asked, [0xFFFFFFFF, 0x00000000])
+
+    def test_it_needs_no_source_bytes(self) -> None:
+        # Arrange
+        fetch = bytes(16).__getitem__
+
+        # Act
+        mapped = spc7110.Decompressor(fetch=fetch)
+
+        # Assert
+        self.assertEqual(mapped.source, b"")
+
+
+class RowTest(unittest.TestCase):
+    def test_a_row_is_one_two_or_four_bytes_by_mode(self) -> None:
+        # Arrange
+        decoders = [started(mode) for mode in MODE_NUMBERS]
+
+        # Act
+        widths = [len(decoder.row()) for decoder in decoders]
+
+        # Assert
+        self.assertEqual(widths, [1, 2, 4])
+
+    def test_eight_rows_hold_the_bytes_a_read_hands_out(self) -> None:
+        # Arrange
+        rows = started(2)
+
+        # Act
+        held = [rows.row() for _ in range(8)]
+
+        # Assert
+        self.assertEqual(
+            b"".join(row[:2] for row in held) + b"".join(row[2:] for row in held),
+            started(2).read(32),
+        )
+
+    def test_a_decompressor_not_yet_started_has_no_row(self) -> None:
+        # Arrange
+        idle = spc7110.Decompressor(bytes(16))
+
+        # Act
+        found = idle.row()
+
+        # Assert
+        self.assertEqual(found, b"")
+
+
 if __name__ == "__main__":
     unittest.main()

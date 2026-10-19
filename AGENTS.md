@@ -7,27 +7,33 @@ is the document written for a person.
 
 ## What this project is, in one paragraph
 
-The SPC7110's decompressor, all three of its modes. A caller hands it a stream
-and reads bytes off what comes back. No manufacturer document for this part is
-known to exist, so the top two rungs of the authority ladder are both empty and a
-reference implementation is carrying the package: 200 streams of random bytes
-across three modes, 102,400 bytes compared, with the reference pinned by commit
-and by three extracts of its source so a check cannot start comparing against
-something else without the pin changing first.
+The SPC7110: its decompressor in all three modes, and the registers a console
+reaches it through, the decompression unit, the data port, the arithmetic unit
+and the memory control. No manufacturer document for this part is known to
+exist, so the top two rungs of the authority ladder are both empty and reference
+implementations carry the package. The decompressor is held to snes9x: 200
+streams of random bytes across three modes, 102,400 bytes compared, with the
+reference pinned by commit and by three extracts of its source so a check cannot
+start comparing against something else without the pin changing first. The
+register interface follows ares at a pinned commit, read beside snes9x's older
+register file, and a dated run agreed with ares on 375,040 bytes read through
+the registers.
 
 ## The interface a caller drives
 
-The part answers a request. There is no clock, no instruction to step through and
-no cycle count to hand back, so none of the family's clocked interface appears
-here.
+The part answers accesses. It runs no program, so none of the family's clocked
+interface appears here, but three of its operations finish on a later master
+clock, so `tick()` advances it one master clock at a time.
 
-`Chip(model)` builds one.
+`Chip(model, rom=None, ram=None, seed=7110)` builds one, scrambled from the seed.
 
-| Call                                      | What it does                                                                |
-| :---------------------------------------- | :-------------------------------------------------------------------------- |
-| `decompress(source, mode, offset, index)` | Start a decompression, returning a `Decompressor`                           |
-| `read(count)`                             | Take that many bytes off a started decompression                            |
-| `reset()`                                 | Nothing, because nothing survives a decompression. Handed back for chaining |
+| Call                                      | What it does                                                       |
+| :---------------------------------------- | :----------------------------------------------------------------- |
+| `read(address)`, `write(address, value)`  | One CPU access at a 24-bit address; an undecoded one raises        |
+| `tick(clocks)`                            | Advance that many master clocks                                    |
+| `reset()`                                 | Set what ares sets at power on. Handed back for chaining           |
+| `decompress(source, mode, offset, index)` | Start a decompression over plain bytes, returning a `Decompressor` |
+| `read(count)` on a `Decompressor`         | Take that many bytes off a started decompression                   |
 
 The mode is not a model. Three modes exist and one chip does all three, so the
 mode is an argument to `decompress` rather than a name in the part catalogue.
@@ -40,13 +46,15 @@ wrong one for a caller who wrote a mode number.
 1. **A manufacturer document**, of which there is none.
 2. **A recording taken off a real SPC7110**, of which there is none on this
    machine.
-3. **The reference implementation**, which is where all of this comes from.
+3. **The reference implementations**: snes9x for the decompressor's output,
+   ares for the register interface, with snes9x's register file as a second
+   witness from the same author.
 
 The record names both empty rungs rather than promoting the third.
 
 ## What is settled and what is not
 
-**Not settled: 6 things**, each in
+**Not settled: 11 things**, each in
 [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) with the measurement that would close it.
 The honest summary is that every output value rests on agreement between two
 implementations.
@@ -173,6 +181,12 @@ comments either, so their reasons live here:
 ```text
 spc7110/
   __init__.py       the package, and the part chosen at construction
+  chip.py           the part a console reads: address decoding, the clock and reset
+  dcu.py            the decompression unit, $4800-$480C, and the directory entry
+  dataport.py       the data port, $4810-$481A
+  alu.py            the multiply and divide unit, $4820-$482F
+  mcu.py            the memory control, $4830-$4834, and the bus mirror
+  streams.py        the program and data ROM split, and a directory read as a census
   decompressor.py   the arithmetic decoder and its context table
   models.py         the three modes, and the one part
   tables.py         the evolution table the contexts move through
@@ -198,9 +212,15 @@ conformance/
   beside the decoder. An `except` written against one sailed straight through the
   other. There is one definition now, in `errors.py`, and adding a second is the
   failure the family standard exists to prevent.
-- **The decoder wraps its input.** A read that runs off the end starts again at
-  the beginning rather than refusing, because that is what the reference does.
-  Nobody knows what the silicon does.
+- **Two ways to feed the decoder.** `Decompressor(source)` over plain bytes wraps
+  at the end of `source`, as snes9x does. `Chip` feeds it through the data-ROM
+  mapping, as ares does, where `$4834` decides the size and the bus mirror
+  decides what lies past the end.
+- **A start is ready on the 21st master clock, not the 20th.** ares spends one
+  clock noticing the request before the 20 it charges, and a test that ticks 20
+  and reads `$480C` sees it clear.
+- **`$4840-$4842` is refused.** That is the real-time clock beside the part, and
+  snes-rtc models it.
 - **`mode_named` and `Chip` answer different questions.** One takes a mode by
   name or number, the other takes a part by name.
 - **The reference is not vendored.** It is built from a pinned commit, and a

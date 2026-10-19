@@ -1,16 +1,29 @@
 {
-  "note": "What this decompressor asserts about the SPC7110 and where each assertion comes from. No manufacturer document for this part is known to exist, so nothing here is verified and the file says so for each constant rather than leaving a reader to infer it from the absence of quotes.",
+  "note": "What this package asserts about the SPC7110 and where each assertion comes from. No manufacturer document for this part is known to exist, so nothing here is verified and the file says so for each constant rather than leaving a reader to infer it from the absence of quotes. The decompressor's constants rest on snes9x; the register interface rests on ares, read beside snes9x as a second witness, and every place the two part is in divergences.json.",
   "authority": {
     "order": [
       "a manufacturer document, of which there is none",
       "a recording taken off a real SPC7110, of which there is none on this machine",
-      "the reference implementation, which is where all of this comes from"
+      "the reference implementations, which is where all of this comes from: snes9x for the decompressor's output, ares for the register interface"
     ],
     "why": "The SPC7110 was made for Nintendo and no datasheet was published. The algorithm was reconstructed from the silicon or from its output, so the top two rungs are both empty and the third is carrying the package.",
     "whatIsMissing": "Any document naming this part. Searched on 2026-08-21; nothing was found, and nothing suggests one was ever published.",
     "comparedAgainst": {
       "runner": "conformance/differential.py",
       "what": "The reference decompressor, built from a commit and a set of extracts both pinned in conformance/pinned.json, asked to expand 200 streams of random bytes across all three modes: 102,400 bytes compared, none of them produced by this model."
+    },
+    "registerInterface": {
+      "source": "ares at commit 9408cb43d4948fc3ea6e152a307a34348df3fe04, ares/sfc/coprocessor/spc7110",
+      "secondWitness": "snes9x at commit 1bcc369e89f08243e0a462882fb1f3e42e51de3a, spc7110emu.cpp and spc7110.cpp",
+      "whatTheyShare": "Both register files carry byuu's name: snes9x's spc7110emu.cpp is byuu and neviksti's 2008 version 0.03, and ares is byuu's later rewrite of the same chip, with its decompressor credited to neviksti and optimised by talarubi. They are one author's two readings of the part, years apart, not two independent investigations, so where they agree it is one lineage agreeing with itself and where they part the later one is followed and the difference is recorded.",
+      "measuredOn": "2026-10-19",
+      "howMeasured": "ares's decompressor.cpp, copied unchanged from the pinned commit, compiled with g++ inside a harness that repeats dcu.cpp's begin-transfer and tile logic and ares's data-ROM read, driven beside spc7110.Chip through its registers: the directory base written to $4801-$4803, the index to $4804, $4806 written, 21 master clocks run, and $4800 read. The harness is not shipped; this is a dated measurement rather than a check the pipeline repeats.",
+      "cartridgeStreams": 619,
+      "cartridgeBytes": 316928,
+      "registerCases": 231,
+      "registerCaseBytes": 59136,
+      "disagreed": 0,
+      "whatTheCasesCover": "Every stream the three cartridges' directories name, 512 bytes each, through each cartridge's own directory; then 231 random directory entries over seeded data with the seek bit, the stride bit, seeks of 0 to 63 rows and strides of 0 to 4 rows chosen by the seed, 256 bytes each. Entries naming mode 3 were skipped, because neither side starts one."
     }
   },
   "facts": {
@@ -53,17 +66,93 @@
       "howToSettleIt": "A datasheet."
     },
     "resetLine": {
-      "value": "nothing, because this part carries no state between decompressions",
+      "value": "the values ares's power() sets: every decompression, data port and arithmetic register to 0x00, $4830 to 0x00, $4831 to 0x00, $4832 to 0x01, $4833 to 0x02, $4834 to 0x00, and nothing waiting",
       "verified": false,
-      "evidence": "Not a claim about a pin. Every decompression is started from its own header and its own context table, and nothing survives from one to the next, so there is no state a reset could clear. What the real part's reset pin does to its internal registers is not known and is not modelled.",
+      "why": "What reset() sets. Construction scrambles every register from the seed and sets none of them.",
+      "evidence": "ares at commit 9408cb43d4948fc3ea6e152a307a34348df3fe04, ares/sfc/coprocessor/spc7110, spc7110.cpp SPC7110::power(). snes9x's SPC7110::reset() sets the same values, except that it also clears $4808, which ares does not keep. Not a claim about the real reset pin: neither implementation says whether the console's reset line reaches the part, and the decompressor's own state and the buffered tile survive in ares, so they survive here.",
       "howToSettleIt": "A capture of the cartridge bus across a console reset part-way through a decompression."
+    },
+    "programRomBytes": {
+      "value": 1048576,
+      "verified": false,
+      "why": "The first megabyte of an SPC7110 cartridge image is the program ROM and the rest is the data ROM.",
+      "evidence": "ares at commit 9408cb43d4948fc3ea6e152a307a34348df3fe04, ares/sfc/coprocessor/spc7110 mia/medium/super-famicom.cpp, programRomSize; snes9x datarom_addr adds the same 0x100000.",
+      "howToSettleIt": "A board's ROM chips read out separately."
+    },
+    "registerWindow": {
+      "value": {
+        "first": 18432,
+        "last": 18495,
+        "aliases": {
+          "0x50": 0,
+          "0x58": 8
+        }
+      },
+      "verified": false,
+      "why": "The part answers $4800-$483F in banks $00-$3F and $80-$BF, and banks $50 and $58 answer as $4800 and $4808 whatever the low address.",
+      "evidence": "ares at commit 9408cb43d4948fc3ea6e152a307a34348df3fe04, ares/sfc/coprocessor/spc7110, spc7110.cpp read() and write(), and the SHVC-LDH3C-01 board in ares/System/Super Famicom/boards.bml. snes9x decodes $4800-$483F; its handling of banks $50 and $58 was not read.",
+      "howToSettleIt": "A logic analyser on the cartridge bus while a game reads $50:xxxx."
+    },
+    "directoryEntryBytes": {
+      "value": 4,
+      "verified": false,
+      "why": "A directory entry is a mode byte and a 24-bit big-endian stream address, at the table base plus four times the index.",
+      "evidence": "Both implementations: ares at commit 9408cb43d4948fc3ea6e152a307a34348df3fe04, ares/sfc/coprocessor/spc7110 dcu.cpp dcuLoadAddress, and snes9x's $4806 handler. The three cartridges' directories, read by conformance/cartridges.py, hold that shape.",
+      "howToSettleIt": "A document, or a bus capture of the four reads."
+    },
+    "masterClockHz": {
+      "value": 21477272,
+      "verified": false,
+      "why": "The clock the part's waits are counted in, the console's master clock.",
+      "evidence": "ares at commit 9408cb43d4948fc3ea6e152a307a34348df3fe04, ares/sfc/coprocessor/spc7110, Thread::create in SPC7110::power().",
+      "howToSettleIt": "A measurement on a cartridge."
+    },
+    "decompressionStartClocks": {
+      "value": 20,
+      "verified": false,
+      "why": "Master clocks between the part taking a start written to $4806 and the decompression being ready. One more clock is spent noticing the start, so a part that was idle shows bit 7 of $480C on the 21st clock.",
+      "evidence": "ares at commit 9408cb43d4948fc3ea6e152a307a34348df3fe04, ares/sfc/coprocessor/spc7110, dcu.cpp dcuBeginTransfer addClocks(20) inside SPC7110::main, which spends addClocks(1) between checks. snes9x starts at once.",
+      "howToSettleIt": "A bus capture timing $480C after a write to $4806."
+    },
+    "multiplyClocks": {
+      "value": 30,
+      "verified": false,
+      "why": "Master clocks a multiply takes once started; the busy bit clears on the 31st clock after the write to $4825 from an idle part.",
+      "evidence": "ares at commit 9408cb43d4948fc3ea6e152a307a34348df3fe04, ares/sfc/coprocessor/spc7110, alu.cpp aluMultiply addClocks(30). snes9x multiplies at once.",
+      "howToSettleIt": "A bus capture timing $482F after a write to $4825."
+    },
+    "divideClocks": {
+      "value": 40,
+      "verified": false,
+      "why": "Master clocks a divide takes once started; the busy bit clears on the 41st clock after the write to $4827 from an idle part.",
+      "evidence": "ares at commit 9408cb43d4948fc3ea6e152a307a34348df3fe04, ares/sfc/coprocessor/spc7110, alu.cpp aluDivide addClocks(40). snes9x divides at once.",
+      "howToSettleIt": "A bus capture timing $482F after a write to $4827."
+    },
+    "powerOnBanks": {
+      "value": [0, 0, 1, 2, 0],
+      "verified": false,
+      "why": "What $4830 to $4834 hold after reset().",
+      "evidence": "Both: ares at commit 9408cb43d4948fc3ea6e152a307a34348df3fe04, ares/sfc/coprocessor/spc7110 SPC7110::power(), and snes9x SPC7110::reset(), which writes 0, 1 and 2 to $4831 to $4833.",
+      "howToSettleIt": "A capture of the registers after a console reset."
+    },
+    "tileBytes": {
+      "value": {
+        "1bpp": 8,
+        "2bpp": 16,
+        "4bpp": 32
+      },
+      "verified": false,
+      "why": "$4800 hands out decompressed rows a tile at a time: eight rows of one, two or four bytes, with the third and fourth planes of a four bit tile after the first two planes of all eight rows.",
+      "evidence": "ares at commit 9408cb43d4948fc3ea6e152a307a34348df3fe04, ares/sfc/coprocessor/spc7110, dcu.cpp dcuRead. With no seek and a stride of one this is the byte order snes9x's buffer produces, which the 619 cartridge streams confirm.",
+      "howToSettleIt": "A bus capture of $4800 across a tile boundary."
     }
   },
   "notStated": [
     "Everything. No manufacturer document for this part is known to exist, so nothing here is verified in the sense the sibling repositories use the word.",
-    "How the chip behaves on a malformed stream. Every implementation guesses and none of the guesses can be checked.",
-    "Anything about timing. How long a decode takes, and whether a console reading the output can outrun it, is unmodelled and unmeasured.",
-    "Whether the three modes are the only three, or the only three any cartridge used."
+    "What a stream reads once it runs past the end of the data ROM. Both implementations feed the decoder through the data-ROM mapping, so a stream never runs out; they mirror differently, and the board's own address decoding is not known.",
+    "How long a decompression start, a multiply and a divide take on the silicon. The figures here are ares's and snes9x makes all three immediate.",
+    "Whether the three modes are the only three, or the only three any cartridge used.",
+    "What a signed divide of 0x80000000 by -1 gives. ares computes it in C, where it is undefined, and this package wraps it to 0x80000000."
   ],
   "documents": {}
 }

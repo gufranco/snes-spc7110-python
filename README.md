@@ -1,6 +1,6 @@
 # SPC7110 Decompressor
 
-The decompressor of the SPC7110 in Python, all three of its output modes, held byte for byte to the snes9x reference implementation.
+The SPC7110 in Python: its decompressor in all three output modes, held byte for byte to snes9x, and the registers a console reaches it through, held to ares.
 
 English | [日本語](README.ja.md) | [简体中文](README.zh-Hans.md) | [繁體中文（香港）](README.zh-HK.md)
 
@@ -8,7 +8,7 @@ English | [日本語](README.ja.md) | [简体中文](README.zh-Hans.md) | [繁�
 [![Release](https://img.shields.io/github/v/release/gufranco/snes-spc7110-python)](https://github.com/gufranco/snes-spc7110-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**3** modes, **200** generated streams over **102,400** bytes and **619** cartridge streams over **316,928** bytes compared against the reference, **0** disagreements, **648** tests, **100%** statement and branch coverage, no dependencies
+**3** modes, **200** generated streams over **102,400** bytes and **619** cartridge streams over **316,928** bytes compared against the reference, **619** cartridge streams and **231** register-driven cases read through the registers against ares, **0** disagreements, **755** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 import spc7110
@@ -55,7 +55,7 @@ Releases follow [Semantic Versioning](https://semver.org/) and are cut from the 
 
 ## The interface
 
-`spc7110.Chip(model)` builds the part. `model` is required and there is no default. The name is matched without regard to case, hyphens, underscores or spaces, and the part keeps its canonical name on `model`.
+`spc7110.Chip(model, rom=None, ram=None, seed=7110)` builds the part. `model` is required and there is no default. The name is matched without regard to case, hyphens, underscores or spaces, and the part keeps its canonical name on `model`. `rom` is the whole cartridge image: the first 1 MiB is the program ROM and the rest is the data ROM. Without one the part builds a 2 MiB image of its own, scrambled from `seed`. `ram` is the save RAM as a `bytearray`, kept as handed; without one the part answers nothing at `$6000-$7FFF`. Every register comes up scrambled from `seed`, and none holds a defined value until `reset()`.
 
 | Model     | Aliases                    | Modes                  |
 | :-------- | :------------------------- | :--------------------- |
@@ -66,7 +66,18 @@ Releases follow [Semantic Versioning](https://semver.org/) and are cut from the 
 | Call                                          | Effect                                                                                                                                                                                                                                   |
 | :-------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `decompress(source, mode, offset=0, index=0)` | Starts a decompression of `source` in `mode` and returns a `Decompressor`. `mode` is a name, an alias or a mode number. `offset` is the byte of `source` to start at. `index` is how many decoded bytes to discard before the first read |
-| `reset()`                                     | Returns the part. Nothing survives a decompression, so there is nothing for it to clear                                                                                                                                                  |
+| `reset()`                                     | Sets the registers ares sets at power on and drops any operation waiting. Returns the part                                                                                                                                               |
+| `read(address)`                               | Reads the 24-bit CPU address. Returns an `int`, or `None` for a register inside `$4800-$483F` that the part does not drive                                                                                                               |
+| `write(address, value)`                       | Writes the low 8 bits of `value` to the 24-bit CPU address. A write to ROM changes nothing                                                                                                                                               |
+| `tick(clocks=1)`                              | Advances the part `clocks` master clocks, at 21,477,272 a second. A decompression start, a multiply and a divide finish on a later clock. Returns the part                                                                               |
+
+| Attribute | Meaning                                                    |
+| :-------- | :--------------------------------------------------------- |
+| `rom`     | The cartridge image, as handed or as built                 |
+| `program` | The program ROM, the first 1 MiB of `rom`, as `bytes`      |
+| `data`    | The data ROM, everything after the first 1 MiB, as `bytes` |
+| `ram`     | The save RAM it was handed, or `None`                      |
+| `model`   | The canonical model name                                   |
 
 A `Decompressor` is what `decompress` returns.
 
@@ -74,12 +85,14 @@ A `Decompressor` is what `decompress` returns.
 | :--------------------------- | :----------------------------------------------------------------------------------------------- |
 | `read(count)`                | Returns the next `count` decoded bytes as `bytes`                                                |
 | `take_byte()`                | Returns the next decoded byte as an `int`                                                        |
+| `row()`                      | Decodes one row of eight pixels and returns its 1, 2 or 4 bytes, bypassing the buffer            |
 | `start(mode, offset, index)` | Restarts the same source in mode number `mode`, clearing every context. Returns the decompressor |
 | `mode`                       | The mode number, or `None` before a start                                                        |
 | `offset`                     | The index of the next source byte the decoder will take                                          |
 | `held`                       | Decoded bytes waiting in the 64-byte buffer                                                      |
 | `contexts`                   | The 32 probability contexts, each a `Context`                                                    |
-| `source`                     | The compressed stream, copied to `bytes`                                                         |
+| `source`                     | The compressed stream, copied to `bytes`, or `b""` when built over a `fetch`                     |
+| `fetch`                      | The function it reads each source byte through, given the offset, or `None`                      |
 
 The decoder wraps its input. A read past the end of `source` continues from byte 0, because the reference does the same.
 
@@ -115,13 +128,14 @@ Discarding 8 bytes with `index` gives the same bytes as reading 16 and dropping 
 
 ### Errors
 
-| Error                       | Raised when                                                                                  |
-| :-------------------------- | :------------------------------------------------------------------------------------------- |
-| `spc7110.UnknownModelError` | `Chip` is given no model, or a name no part answers to. The message lists the names accepted |
-| `spc7110.UnknownMode`       | A mode name, alias or number is not one of the three. The message lists the three names      |
-| `spc7110.Empty`             | The source is empty                                                                          |
+| Error                       | Raised when                                                                                                              |
+| :-------------------------- | :----------------------------------------------------------------------------------------------------------------------- |
+| `spc7110.UnknownModelError` | `Chip` is given no model, or a name no part answers to. The message lists the names accepted                             |
+| `spc7110.UnknownMode`       | A mode name, alias or number is not one of the three. The message lists the three names                                  |
+| `spc7110.Empty`             | The source is empty, or a cartridge image holds no data ROM after its first 1 MiB, or the save RAM handed holds no bytes |
+| `spc7110.OutOfRange`        | `read` or `write` is given an address the part does not decode, or one outside 24 bits                                   |
 
-All three are defined once, in [`spc7110/errors.py`](spc7110/errors.py).
+All four are defined once, in [`spc7110/errors.py`](spc7110/errors.py).
 
 ```python
 import spc7110
@@ -150,17 +164,21 @@ spc7120 is not a part this package covers; it has spc7110
 
 ### Module contents
 
-| Name                           | Content                                                                                                                                                 |
-| :----------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `spc7110.MODELS`               | The one `Model` record, keyed by canonical name. A `Model` carries `name`, `aliases`, `modes`, `summary` and `build()`                                  |
-| `spc7110.MODES`                | The three `Mode` records, keyed by name                                                                                                                 |
-| `spc7110.Mode`                 | A mode record: `number`, `name`, `depth` in bits per pixel, `aliases`, `summary`, and `build(source, offset=0, index=0)`, which starts a `Decompressor` |
-| `spc7110.mode_named(mode)`     | The `Mode` for a number given as an `int`, or for a name or alias given as a string. A number written as a string, such as `"2"`, raises `UnknownMode`  |
-| `spc7110.Decompressor(source)` | The decoder itself, built straight from a stream. It produces nothing until `start` names a mode                                                        |
-| `spc7110.Context`              | One probability context: `index`, its row in the evolution table, and `invert`, which symbol it currently takes as the likely one                       |
-| `spc7110.CONTEXTS`             | 32, the number of contexts                                                                                                                              |
-| `spc7110.tables`               | `EVOLUTION`, 53 rows of probability, next row on each symbol and invert flag, and `MODE2_CONTEXT`, the 32 context transitions of mode 2                 |
-| `spc7110.__version__`          | The installed version                                                                                                                                   |
+| Name                            | Content                                                                                                                                                                                                               |
+| :------------------------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `spc7110.MODELS`                | The one `Model` record, keyed by canonical name. A `Model` carries `name`, `aliases`, `modes`, `summary` and `build()`                                                                                                |
+| `spc7110.MODES`                 | The three `Mode` records, keyed by name                                                                                                                                                                               |
+| `spc7110.Mode`                  | A mode record: `number`, `name`, `depth` in bits per pixel, `aliases`, `summary`, and `build(source, offset=0, index=0)`, which starts a `Decompressor`                                                               |
+| `spc7110.mode_named(mode)`      | The `Mode` for a number given as an `int`, or for a name or alias given as a string. A number written as a string, such as `"2"`, raises `UnknownMode`                                                                |
+| `spc7110.Decompressor(source)`  | The decoder itself, built straight from a stream. It produces nothing until `start` names a mode. `Decompressor(fetch=f)` reads through `f(offset)` instead, which is how the part reads its data ROM                 |
+| `spc7110.PROGRAM_BYTES`         | 1,048,576, the size of the program ROM at the front of a cartridge image                                                                                                                                              |
+| `spc7110.data_rom(image)`       | The data ROM of a cartridge image, everything after `PROGRAM_BYTES`, or `b""` when there is nothing after it                                                                                                          |
+| `spc7110.directory(drom, base)` | The stream directory at `base`: a list of `(mode, address)` entries read four bytes at a time until a mode the part lacks, an address past the end or an address lower than the last, and the offset where it stopped |
+| `spc7110.chip`                  | The constants behind the timing: `MASTER_CLOCK_HZ`, `DECOMPRESSION_CLOCKS`, `MULTIPLY_CLOCKS`, `DIVIDE_CLOCKS` and `UNSET_SEED`                                                                                       |
+| `spc7110.Context`               | One probability context: `index`, its row in the evolution table, and `invert`, which symbol it currently takes as the likely one                                                                                     |
+| `spc7110.CONTEXTS`              | 32, the number of contexts                                                                                                                                                                                            |
+| `spc7110.tables`                | `EVOLUTION`, 53 rows of probability, next row on each symbol and invert flag, and `MODE2_CONTEXT`, the 32 context transitions of mode 2                                                                               |
+| `spc7110.__version__`           | The installed version                                                                                                                                                                                                 |
 
 ```python
 import spc7110
@@ -206,6 +224,69 @@ Two things in the decoder look like mistakes and are not.
 
 **The colour lists are rotated, not sorted.** The colour just decoded goes to the front, then the three reference pixels are moved to the front in turn. The number the coder produces is an index into that list, so the same number means a different colour from one pixel to the next. A model that sorts the list, or keeps it in value order, decodes the first few pixels correctly and then drifts.
 
+## Driving it through its registers
+
+A game never hands the part a stream. It writes the directory base to `$4801-$4803`, an index to `$4804`, starts with `$4806`, waits for bit 7 of `$480C`, and reads `$4800`. The part reads the directory entry and the stream through its own data-ROM mapping, so a stream never runs off the end of anything.
+
+```python
+import random
+
+import spc7110
+
+data = bytearray(random.Random(1).randbytes(0x10000))
+data[8:12] = bytes((1, 0x00, 0x20, 0x00))
+chip = spc7110.Chip("spc7110", rom=bytes(spc7110.PROGRAM_BYTES) + data).reset()
+
+for register, value in ((0x4801, 0x08), (0x4802, 0x00), (0x4803, 0x00), (0x4804, 0x00)):
+    chip.write(register, value)
+chip.write(0x4806, 0x00)
+
+print(hex(chip.tick(20).read(0x480C)), hex(chip.tick(1).read(0x480C)))
+print(bytes(chip.read(0x4800) for _ in range(16)).hex(" "))
+print(chip.read(0xD00000) == data[0], chip.read(0x581234))
+```
+
+```
+0x0 0x80
+46 a0 43 65 12 74 46 a1 97 b9 73 99 33 92 1b 32
+True 0
+```
+
+The directory entry at `$000008` names mode 1 at `$002000`. The start is ready on the 21st master clock: one to notice it and the 20 ares charges. Bank `$D0` reads the data ROM's first megabyte, because `$4831` is 0 after reset, and bank `$58` answers as `$4808`, which reads 0.
+
+| Registers     | Unit           | What they do                                                                                                                                  |
+| :------------ | :------------- | :-------------------------------------------------------------------------------------------------------------------------------------------- |
+| `$4800-$480C` | Decompression  | Directory base, index, seek, stride, length counter, control and status; `$4800` hands out the decoded bytes a tile at a time                 |
+| `$4810-$481A` | Data port      | Reads the data ROM at an offset plus an optional adjust, stepping by one or by a stride, signed or not                                        |
+| `$4820-$482F` | Arithmetic     | 16 by 16 multiply and 32 by 16 divide, signed or not; 30 and 40 master clocks, with bit 7 of `$482F` busy until the result lands              |
+| `$4830-$4834` | Memory control | Save RAM enable in bit 7 of `$4830`, the data-ROM megabyte banks `$D0`, `$E0` and `$F0` show, the data ROM's size and the second program bank |
+
+```python
+import spc7110
+
+chip = spc7110.Chip("spc7110").reset()
+for register, value in ((0x4820, 0x34), (0x4821, 0x12), (0x4824, 0x78), (0x4825, 0x56)):
+    chip.write(register, value)
+
+print(hex(chip.read(0x482F)), hex(chip.tick(31).read(0x482F)))
+print(bytes(chip.read(0x4828 + at) for at in range(4))[::-1].hex())
+
+for address in (0x7E0000, 0x004840):
+    try:
+        chip.read(address)
+    except spc7110.OutOfRange as error:
+        print(error)
+```
+
+```
+0x81 0x1
+06260060
+0x7e0000 is not an address the SPC7110 answers
+0x004840 is not an address the SPC7110 answers
+```
+
+The multiply reads its operands when it finishes, so a write to `$4820` during the 30 clocks changes the product. `$4840-$4842` is the real-time clock beside the part, which [snes-rtc-python](https://github.com/gufranco/snes-rtc-python) models, so it is refused here. Where ares and snes9x disagree about a register, the part follows ares and [`conformance/divergences.json`](conformance/divergences.json) carries both.
+
 ## Is it right
 
 No manufacturer document for this part is known, and no recording taken off a real SPC7110 is on this machine. Both of those rungs of evidence, the manufacturer document and the hardware recording, are recorded as empty in [`conformance/hardware.json`](conformance/hardware.json). Every output value rests on agreement with the snes9x decompressor.
@@ -231,6 +312,10 @@ The reference is not vendored. `conformance.build` fetches snes9x at the commit 
 
 Each generated case is 8,192 bytes from a seeded generator, a mode chosen by the seed, a random start offset, and on odd seeds up to 63 discarded bytes. Both sides decode 512 bytes from the same three settings. The runner prints the first 5 cases that disagree.
 
+### Through the registers, against ares
+
+The register interface is held to ares at commit `9408cb43d4948fc3ea6e152a307a34348df3fe04`. Its decompressor, compiled unchanged inside a harness that repeats its tile logic, was driven beside `spc7110.Chip` through the registers over 619 cartridge streams and 231 register-driven cases with random seeks and strides: 375,040 bytes, 0 disagreed. [`conformance/hardware.json`](conformance/hardware.json) records the run under `registerInterface`. The harness is not shipped, so this is a dated measurement rather than a check the pipeline repeats, and ares, bsnes and snes9x all descend from one reverse engineering.
+
 ### Streams from cartridges
 
 Random bytes drive the decoder through states an encoder never produces. Real streams drive it through the ones an encoder does. Both are checked.
@@ -254,7 +339,7 @@ print(bytes(differential.replay(case)[:8]).hex(" "))
 41 2f 61 31 d1 3d 7e 90
 ```
 
-The 6 open questions, each with the measurement that would close it, are in [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md). Where two sources part, both are kept in [`conformance/divergences.json`](conformance/divergences.json) with what would settle it.
+The 11 open questions, each with the measurement that would close it, are in [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md). Where two sources part, both are kept in [`conformance/divergences.json`](conformance/divergences.json) with what would settle it.
 
 ## Working on it
 
@@ -281,13 +366,15 @@ python3 -m conformance.speed
 
 Each module has a test file beside it, named after it, and each runs on its own. Coverage is a hard gate at 100% statement and branch. The throughput floor runs outside the coverage step, so it measures the decoder and not the tracer.
 
-The tables ship in [`spc7110/tables.py`](spc7110/tables.py). They are coder parameters: how likely a symbol is and which row follows. The decompressor takes its stream as bytes. Where a stream sits in a cartridge is a mapping question, and the chip's mapper and real-time clock are separate packages.
+The tables ship in [`spc7110/tables.py`](spc7110/tables.py). They are coder parameters: how likely a symbol is and which row follows. The part reads streams through the data-ROM mapping its own registers set. The real-time clock beside it is a separate package.
 
 ## References
 
 This repository carries no document and no cartridge data.
 
 - snes9x, `spc7110dec.cpp` and `spc7110dec.h` at commit `2971061cf07fdc6fc7d18883edf4e648eb16a6d2`, https://github.com/snes9xgit/snes9x, for every output value. It is fetched and compiled at build time and never redistributed here.
+- ares, `ares/sfc/coprocessor/spc7110` at commit `9408cb43d4948fc3ea6e152a307a34348df3fe04`, https://github.com/ares-emulator/ares, for the register interface, its timing and the bank mapping. Facts only; no code is taken.
+- snes9x, `spc7110emu.cpp` and `spc7110.cpp` at commit `1bcc369e89f08243e0a462882fb1f3e42e51de3a`, read as the second witness for the register interface.
 
 ## Citing this
 

@@ -1,8 +1,11 @@
 from collections.abc import Sequence
-from typing import Any, override
+from typing import TYPE_CHECKING, Any, override
 
 from .decompressor import Decompressor
 from .errors import UnknownMode, UnknownModelError
+
+if TYPE_CHECKING:
+    from .chip import Chip
 
 
 class Mode:
@@ -103,35 +106,13 @@ class Model:
         self.modes = tuple(sorted(MODES))
 
     def build(self, **options: Any) -> "Chip":
+        from .chip import Chip
+
         return Chip(self.name, **options)
 
     @override
     def __repr__(self) -> str:
         return f"<Model {self.name}, {len(self.modes)} modes>"
-
-
-class Chip:
-    __slots__ = ("model",)
-
-    def __init__(self, model: str) -> None:
-        self.model = model
-
-    def decompress(
-        self,
-        source: bytes | bytearray,
-        mode: str | int,
-        offset: int = 0,
-        index: int = 0,
-    ) -> Decompressor:
-        started: Decompressor = mode_named(mode).build(source, offset=offset, index=index)
-        return started
-
-    def reset(self) -> "Chip":
-        return self
-
-    @override
-    def __repr__(self) -> str:
-        return f"<Chip {self.model}>"
 
 
 _PARTS = (
