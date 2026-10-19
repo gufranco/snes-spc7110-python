@@ -254,7 +254,7 @@ print(bytes(differential.replay(case)[:8]).hex(" "))
 41 2f 61 31 d1 3d 7e 90
 ```
 
-7 个未解决的问题，以及能够解决每个问题的测量方法，都在 [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) 中。两个来源出现分歧时，两者都保留在 [`conformance/divergences.json`](conformance/divergences.json) 中，并附有能够判定分歧的依据。
+6 个未解决的问题，以及能够解决每个问题的测量方法，都在 [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) 中。两个来源出现分歧时，两者都保留在 [`conformance/divergences.json`](conformance/divergences.json) 中，并附有能够判定分歧的依据。
 
 ## 参与开发
 

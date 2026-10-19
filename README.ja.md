@@ -254,7 +254,7 @@ print(bytes(differential.replay(case)[:8]).hex(" "))
 41 2f 61 31 d1 3d 7e 90
 ```
 
-7つの未解決の問題と、それぞれを解決する測定は[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)にあります。2つの情報源の見解が分かれる箇所は、両方とも[`conformance/divergences.json`](conformance/divergences.json)に、決着をつける方法とともに残しています。
+6つの未解決の問題と、それぞれを解決する測定は[OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)にあります。2つの情報源の見解が分かれる箇所は、両方とも[`conformance/divergences.json`](conformance/divergences.json)に、決着をつける方法とともに残しています。
 
 ## 開発
 

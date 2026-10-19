@@ -254,7 +254,7 @@ print(bytes(differential.replay(case)[:8]).hex(" "))
 41 2f 61 31 d1 3d 7e 90
 ```
 
-7 個未解決的問題，以及可以解決每個問題的測量，列於 [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)。當兩個來源出現分歧時，兩者都保留在 [`conformance/divergences.json`](conformance/divergences.json) 中，並附上可以判定的方法。
+6 個未解決的問題，以及可以解決每個問題的測量，列於 [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md)。當兩個來源出現分歧時，兩者都保留在 [`conformance/divergences.json`](conformance/divergences.json) 中，並附上可以判定的方法。
 
 ## 參與開發
 

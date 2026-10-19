@@ -254,7 +254,7 @@ print(bytes(differential.replay(case)[:8]).hex(" "))
 41 2f 61 31 d1 3d 7e 90
 ```
 
-The 7 open questions, each with the measurement that would close it, are in [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md). Where two sources part, both are kept in [`conformance/divergences.json`](conformance/divergences.json) with what would settle it.
+The 6 open questions, each with the measurement that would close it, are in [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md). Where two sources part, both are kept in [`conformance/divergences.json`](conformance/divergences.json) with what would settle it.
 
 ## Working on it
 

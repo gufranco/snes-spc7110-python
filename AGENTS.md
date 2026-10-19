@@ -31,9 +31,9 @@ here.
 
 The mode is not a model. Three modes exist and one chip does all three, so the
 mode is an argument to `decompress` rather than a name in the part catalogue.
-`describe` answers about modes and `describe_part` answers about parts, kept
-apart because one function that guessed which was meant would answer the wrong
-one for a caller who wrote a mode number.
+`mode_named` answers about modes and `Chip` with `MODELS` answers about parts,
+kept apart because one function that guessed which was meant would answer the
+wrong one for a caller who wrote a mode number.
 
 ## The authority ladder
 
@@ -46,7 +46,7 @@ The record names both empty rungs rather than promoting the third.
 
 ## What is settled and what is not
 
-**Not settled: 7 things**, each in
+**Not settled: 6 things**, each in
 [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) with the measurement that would close it.
 The honest summary is that every output value rests on agreement between two
 implementations.
@@ -201,8 +201,8 @@ conformance/
 - **The decoder wraps its input.** A read that runs off the end starts again at
   the beginning rather than refusing, because that is what the reference does.
   Nobody knows what the silicon does.
-- **`describe` and `describe_part` answer different questions.** One takes a mode
-  by name or number, the other takes a part by name.
+- **`mode_named` and `Chip` answer different questions.** One takes a mode by
+  name or number, the other takes a part by name.
 - **The reference is not vendored.** It is built from a pinned commit, and a
   machine without a C++ compiler skips that step and says so.
 
