@@ -70,6 +70,17 @@ commit and by three extracts of its source. A change that updates the commit
 without re-reading the extracts has removed the only thing that makes the
 comparison trustworthy.
 
+## Test cartridges
+
+[`conformance/testroms.json`](conformance/testroms.json) keeps an empty list,
+and its `none` says why: no test cartridge exercises the SPC7110. The 18 images
+in `snes-roms/5 Tools & Service Test Carts/` declare no coprocessor or an SA-1,
+or carry no header, and the 1,414 files of the [higan snes-test-roms
+mirror](https://gitlab.com/higan/snes-test-roms) at `26e8aa91` hold nothing for
+the SPC7110. It is reached only through the three retail games that carry it.
+There is no test cartridge runner here. A test cartridge for the SPC7110 that
+appears goes in the record, by SHA-256, and gets one.
+
 ## Every gate, in the order to run them
 
 ```bash
