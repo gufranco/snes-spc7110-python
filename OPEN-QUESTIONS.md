@@ -87,7 +87,7 @@ block.
 **The document says.** Nothing.
 
 **What was wrong with the first attempt.** It searched. A pattern search turned up
-a run of 254 plausible directory entries in *Super Power League 4*, every one of
+a run of 254 plausible directory entries in _Super Power League 4_, every one of
 which decoded without complaint, which established nothing: this decompressor
 raises on nothing, so a random offset decodes just as happily. The measurement
 that killed it was entropy, 7.233 for the run against 7.144 for random offsets,
@@ -98,11 +98,11 @@ three registers the game writes, so the base was never something to search for.
 It is a constant in the cartridge's own code, and the three games write it three
 different ways:
 
-| Cartridge | How its code names the base | Streams |
-|:--|:--|--:|
-| Tengai Makyou Zero | three immediate loads | 196 |
-| Momotarou Dentetsu Happy | three bytes of a table, read long-indexed | 256 |
-| Super Power League 4 | two sixteen bit loads over the same three bytes | 167 |
+| Cartridge                | How its code names the base                     | Streams |
+| :----------------------- | :---------------------------------------------- | ------: |
+| Tengai Makyou Zero       | three immediate loads                           |     196 |
+| Momotarou Dentetsu Happy | three bytes of a table, read long-indexed       |     256 |
+| Super Power League 4     | two sixteen bit loads over the same three bytes |     167 |
 
 All three name `0x000008`, and in all three the directory ends at exactly the
 address of the first stream, which is a structure holding across three
@@ -110,11 +110,11 @@ independently written games rather than a coincidence.
 
 **What the oracle says now.** The separation that was missing is there:
 
-| Cartridge | Streams decode to | Random offsets decode to |
-|:--|--:|--:|
-| Tengai Makyou Zero | 2.685 | 7.367 |
-| Momotarou Dentetsu Happy | 3.654 | 7.243 |
-| Super Power League 4 | 3.603 | 7.104 |
+| Cartridge                | Streams decode to | Random offsets decode to |
+| :----------------------- | ----------------: | -----------------------: |
+| Tengai Makyou Zero       |             2.685 |                    7.367 |
+| Momotarou Dentetsu Happy |             3.654 |                    7.243 |
+| Super Power League 4     |             3.603 |                    7.104 |
 
 Entropy in bits per byte over 512 bytes. Graphics carry far less than noise, and
 the gap is now four bits rather than a tenth of one.

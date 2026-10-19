@@ -31,10 +31,10 @@ The example hands the part the 256 byte values in order as a compressed stream a
 
 ## Install
 
-| Requirement | Version |
-|:--|:--|
-| Python | 3.12 or newer |
-| git | Any |
+| Requirement             | Version                                                |
+| :---------------------- | :----------------------------------------------------- |
+| Python                  | 3.12 or newer                                          |
+| git                     | Any                                                    |
 | A C++17 compiler, `g++` | Only to build the reference for the differential check |
 
 ```bash
@@ -57,29 +57,29 @@ Releases follow [Semantic Versioning](https://semver.org/) and are cut from the 
 
 `spc7110.Chip(model)` builds the part. `model` is required and there is no default. The name is matched without regard to case, hyphens, underscores or spaces, and the part keeps its canonical name on `model`.
 
-| Model | Aliases | Modes |
-|:--|:--|:--|
+| Model     | Aliases                    | Modes                  |
+| :-------- | :------------------------- | :--------------------- |
 | `spc7110` | `spc-7110`, `epsonspc7110` | `1bpp`, `2bpp`, `4bpp` |
 
 ### Calls
 
-| Call | Effect |
-|:--|:--|
+| Call                                          | Effect                                                                                                                                                                                                                                   |
+| :-------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `decompress(source, mode, offset=0, index=0)` | Starts a decompression of `source` in `mode` and returns a `Decompressor`. `mode` is a name, an alias or a mode number. `offset` is the byte of `source` to start at. `index` is how many decoded bytes to discard before the first read |
-| `reset()` | Returns the part. Nothing survives a decompression, so there is nothing for it to clear |
+| `reset()`                                     | Returns the part. Nothing survives a decompression, so there is nothing for it to clear                                                                                                                                                  |
 
 A `Decompressor` is what `decompress` returns.
 
-| Call or attribute | Meaning |
-|:--|:--|
-| `read(count)` | Returns the next `count` decoded bytes as `bytes` |
-| `take_byte()` | Returns the next decoded byte as an `int` |
+| Call or attribute            | Meaning                                                                                          |
+| :--------------------------- | :----------------------------------------------------------------------------------------------- |
+| `read(count)`                | Returns the next `count` decoded bytes as `bytes`                                                |
+| `take_byte()`                | Returns the next decoded byte as an `int`                                                        |
 | `start(mode, offset, index)` | Restarts the same source in mode number `mode`, clearing every context. Returns the decompressor |
-| `mode` | The mode number, or `None` before a start |
-| `offset` | The index of the next source byte the decoder will take |
-| `held` | Decoded bytes waiting in the 64-byte buffer |
-| `contexts` | The 32 probability contexts, each a `Context` |
-| `source` | The compressed stream, copied to `bytes` |
+| `mode`                       | The mode number, or `None` before a start                                                        |
+| `offset`                     | The index of the next source byte the decoder will take                                          |
+| `held`                       | Decoded bytes waiting in the 64-byte buffer                                                      |
+| `contexts`                   | The 32 probability contexts, each a `Context`                                                    |
+| `source`                     | The compressed stream, copied to `bytes`                                                         |
 
 The decoder wraps its input. A read past the end of `source` continues from byte 0, because the reference does the same.
 
@@ -115,11 +115,11 @@ Discarding 8 bytes with `index` gives the same bytes as reading 16 and dropping 
 
 ### Errors
 
-| Error | Raised when |
-|:--|:--|
+| Error                       | Raised when                                                                                  |
+| :-------------------------- | :------------------------------------------------------------------------------------------- |
 | `spc7110.UnknownModelError` | `Chip` is given no model, or a name no part answers to. The message lists the names accepted |
-| `spc7110.UnknownMode` | A mode name, alias or number is not one of the three. The message lists the three names |
-| `spc7110.Empty` | The source is empty |
+| `spc7110.UnknownMode`       | A mode name, alias or number is not one of the three. The message lists the three names      |
+| `spc7110.Empty`             | The source is empty                                                                          |
 
 All three are defined once, in [`spc7110/errors.py`](spc7110/errors.py).
 
@@ -150,17 +150,17 @@ spc7120 is not a part this package covers; it has spc7110
 
 ### Module contents
 
-| Name | Content |
-|:--|:--|
-| `spc7110.MODELS` | The one `Model` record, keyed by canonical name. A `Model` carries `name`, `aliases`, `modes`, `summary` and `build()` |
-| `spc7110.MODES` | The three `Mode` records, keyed by name |
-| `spc7110.Mode` | A mode record: `number`, `name`, `depth` in bits per pixel, `aliases`, `summary`, and `build(source, offset=0, index=0)`, which starts a `Decompressor` |
-| `spc7110.mode_named(mode)` | The `Mode` for a number given as an `int`, or for a name or alias given as a string. A number written as a string, such as `"2"`, raises `UnknownMode` |
-| `spc7110.Decompressor(source)` | The decoder itself, built straight from a stream. It produces nothing until `start` names a mode |
-| `spc7110.Context` | One probability context: `index`, its row in the evolution table, and `invert`, which symbol it currently takes as the likely one |
-| `spc7110.CONTEXTS` | 32, the number of contexts |
-| `spc7110.tables` | `EVOLUTION`, 53 rows of probability, next row on each symbol and invert flag, and `MODE2_CONTEXT`, the 32 context transitions of mode 2 |
-| `spc7110.__version__` | The installed version |
+| Name                           | Content                                                                                                                                                 |
+| :----------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `spc7110.MODELS`               | The one `Model` record, keyed by canonical name. A `Model` carries `name`, `aliases`, `modes`, `summary` and `build()`                                  |
+| `spc7110.MODES`                | The three `Mode` records, keyed by name                                                                                                                 |
+| `spc7110.Mode`                 | A mode record: `number`, `name`, `depth` in bits per pixel, `aliases`, `summary`, and `build(source, offset=0, index=0)`, which starts a `Decompressor` |
+| `spc7110.mode_named(mode)`     | The `Mode` for a number given as an `int`, or for a name or alias given as a string. A number written as a string, such as `"2"`, raises `UnknownMode`  |
+| `spc7110.Decompressor(source)` | The decoder itself, built straight from a stream. It produces nothing until `start` names a mode                                                        |
+| `spc7110.Context`              | One probability context: `index`, its row in the evolution table, and `invert`, which symbol it currently takes as the likely one                       |
+| `spc7110.CONTEXTS`             | 32, the number of contexts                                                                                                                              |
+| `spc7110.tables`               | `EVOLUTION`, 53 rows of probability, next row on each symbol and invert flag, and `MODE2_CONTEXT`, the 32 context transitions of mode 2                 |
+| `spc7110.__version__`          | The installed version                                                                                                                                   |
 
 ```python
 import spc7110
@@ -194,11 +194,11 @@ After 64 bytes of 1bpp output, context 0 has moved from row 0 of the evolution t
 
 One arithmetic decoder sits under all three. The mode decides how many bits a symbol carries and what happens to it afterwards.
 
-| Mode | Name | Produces | What is different |
-|:--|:--|:--|:--|
-| 0 | `1bpp` | One bit a pixel | The context comes from the last few decisions, since there are only two colours |
-| 1 | `2bpp` | Two bits a pixel | A recency list of the four colours, so a colour used recently costs fewer bits |
-| 2 | `4bpp` | Four bits a pixel | The same list over sixteen colours, and a whole 16-byte tile is buffered before it is handed back |
+| Mode | Name   | Produces          | What is different                                                                                 |
+| :--- | :----- | :---------------- | :------------------------------------------------------------------------------------------------ |
+| 0    | `1bpp` | One bit a pixel   | The context comes from the last few decisions, since there are only two colours                   |
+| 1    | `2bpp` | Two bits a pixel  | A recency list of the four colours, so a colour used recently costs fewer bits                    |
+| 2    | `4bpp` | Four bits a pixel | The same list over sixteen colours, and a whole 16-byte tile is buffered before it is handed back |
 
 Two things in the decoder look like mistakes and are not.
 
@@ -221,13 +221,13 @@ python3 -m conformance.differential
 
 The reference is not vendored. `conformance.build` fetches snes9x at the commit pinned in [`conformance/pinned.json`](conformance/pinned.json), cuts the decompressor out of its source between two marker lines the pin names, and compiles it with `g++` against [`conformance/ref/driver.cpp`](conformance/ref/driver.cpp). A source whose markers have moved stops the build. It exits 0 when built, 1 when the compiler fails, and 2 on a bad argument or a fetch that failed.
 
-| Tool | Arguments | Exit codes |
-|:--|:--|:--|
-| `python3 -m conformance.build` | `--sources DIR`, `--output PATH`, `--pinned PATH`, `--driver-source PATH` | 0 built, 1 compile failed, 2 usage or fetch |
-| `python3 -m conformance.differential` | `--seeds N`, default 200, and `--driver PATH` | 0 all agreed, 1 any disagreed, 2 no driver or usage |
-| `python3 -m conformance.cartridges` | A directory of cartridges and an output directory | 0 recorded, 2 nothing found or usage |
-| `python3 -m conformance.against_cartridges` | A directory of cartridges, an output directory, and `--driver PATH` | 0 all agreed, 1 any disagreed, 2 nothing found, no driver or usage |
-| `python3 -m conformance.speed` | None | 0 at or above 10,000 decoded bytes a second, 1 below |
+| Tool                                        | Arguments                                                                 | Exit codes                                                         |
+| :------------------------------------------ | :------------------------------------------------------------------------ | :----------------------------------------------------------------- |
+| `python3 -m conformance.build`              | `--sources DIR`, `--output PATH`, `--pinned PATH`, `--driver-source PATH` | 0 built, 1 compile failed, 2 usage or fetch                        |
+| `python3 -m conformance.differential`       | `--seeds N`, default 200, and `--driver PATH`                             | 0 all agreed, 1 any disagreed, 2 no driver or usage                |
+| `python3 -m conformance.cartridges`         | A directory of cartridges and an output directory                         | 0 recorded, 2 nothing found or usage                               |
+| `python3 -m conformance.against_cartridges` | A directory of cartridges, an output directory, and `--driver PATH`       | 0 all agreed, 1 any disagreed, 2 nothing found, no driver or usage |
+| `python3 -m conformance.speed`              | None                                                                      | 0 at or above 10,000 decoded bytes a second, 1 below               |
 
 Each generated case is 8,192 bytes from a seeded generator, a mode chosen by the seed, a random start offset, and on odd seeds up to 63 discarded bytes. Both sides decode 512 bytes from the same three settings. The runner prints the first 5 cases that disagree.
 
@@ -258,13 +258,13 @@ The 7 open questions, each with the measurement that would close it, are in [OPE
 
 ## Working on it
 
-| Need | Where |
-|:--|:--|
-| Every gate and the order to run them | [CONTRIBUTING.md](CONTRIBUTING.md) |
-| The same material for a coding agent | [AGENTS.md](AGENTS.md) |
-| The standard this repository shares with the rest of the family | [FAMILY.md](FAMILY.md) |
-| Bug reports | [GitHub Issues](https://github.com/gufranco/snes-spc7110-python/issues) |
-| Security reports | [SECURITY.md](SECURITY.md) |
+| Need                                                            | Where                                                                   |
+| :-------------------------------------------------------------- | :---------------------------------------------------------------------- |
+| Every gate and the order to run them                            | [CONTRIBUTING.md](CONTRIBUTING.md)                                      |
+| The same material for a coding agent                            | [AGENTS.md](AGENTS.md)                                                  |
+| The standard this repository shares with the rest of the family | [FAMILY.md](FAMILY.md)                                                  |
+| Bug reports                                                     | [GitHub Issues](https://github.com/gufranco/snes-spc7110-python/issues) |
+| Security reports                                                | [SECURITY.md](SECURITY.md)                                              |
 
 ```bash
 uvx ruff@0.16.3 format --check .

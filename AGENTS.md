@@ -23,11 +23,11 @@ here.
 
 `Chip(model)` builds one.
 
-| Call | What it does |
-|:--|:--|
-| `decompress(source, mode, offset, index)` | Start a decompression, returning a `Decompressor` |
-| `read(count)` | Take that many bytes off a started decompression |
-| `reset()` | Nothing, because nothing survives a decompression. Handed back for chaining |
+| Call                                      | What it does                                                                |
+| :---------------------------------------- | :-------------------------------------------------------------------------- |
+| `decompress(source, mode, offset, index)` | Start a decompression, returning a `Decompressor`                           |
+| `read(count)`                             | Take that many bytes off a started decompression                            |
+| `reset()`                                 | Nothing, because nothing survives a decompression. Handed back for chaining |
 
 The mode is not a model. Three modes exist and one chip does all three, so the
 mode is an argument to `decompress` rather than a name in the part catalogue.
@@ -155,6 +155,18 @@ their reasons live here, beside those of the coverage exclusions:
 - `@unittest\.skipUnless\(SOLD_AS_A_COMPONENT,`, `^def machine_mentions\(` and
   `^def listing\(` in the coverage exclusions: this part only existed inside one
   machine, so the family sweep for machine names is skipped here.
+
+The formatter's ignores in [`.prettierignore`](.prettierignore) carry no
+comments either, so their reasons live here:
+
+- `pnpm-lock.yaml` and `package-lock.json`: the package manager writes them, in
+  its own layout, on every install.
+- `node_modules/`, `.venv/`, `venv/`, `build/`, `dist/` and `*.egg-info/`:
+  installed or built, never written by hand.
+- `.coverage`, `coverage.json`, `htmlcov/` and the tool caches: the output of a
+  run, never committed.
+- `docs/`, `specs/`, `.work/` and `.claude/`: local working material, never
+  committed.
 
 ## Layout
 

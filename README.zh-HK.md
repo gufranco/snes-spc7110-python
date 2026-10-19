@@ -31,10 +31,10 @@ print(started.mode, started.offset, started.held)
 
 ## 安裝
 
-| 需求 | 版本 |
-|:--|:--|
-| Python | 3.12 或更新 |
-| git | 任何版本 |
+| 需求               | 版本                             |
+| :----------------- | :------------------------------- |
+| Python             | 3.12 或更新                      |
+| git                | 任何版本                         |
 | C++17 編譯器 `g++` | 僅在為差分檢查建置參考實現時需要 |
 
 ```bash
@@ -57,29 +57,29 @@ python3 spc7110/doctor.py
 
 `spc7110.Chip(model)` 用於建立晶片。`model` 為必填，沒有預設值。名稱比對時不區分大小寫、連字號、底線或空格，晶片會在 `model` 上保留其標準名稱。
 
-| 型號 | 別名 | 模式 |
-|:--|:--|:--|
+| 型號      | 別名                       | 模式                   |
+| :-------- | :------------------------- | :--------------------- |
 | `spc7110` | `spc-7110`, `epsonspc7110` | `1bpp`, `2bpp`, `4bpp` |
 
 ### 呼叫
 
-| 呼叫 | 作用 |
-|:--|:--|
+| 呼叫                                          | 作用                                                                                                                                                                         |
+| :-------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `decompress(source, mode, offset=0, index=0)` | 以 `mode` 開始解壓 `source`，並傳回一個 `Decompressor`。`mode` 可以是名稱、別名或模式編號。`offset` 是 `source` 中開始的位元組。`index` 是首次讀取前要捨棄的已解碼位元組數目 |
-| `reset()` | 傳回晶片本身。解壓過程不會留下任何狀態，因此沒有需要清除的內容 |
+| `reset()`                                     | 傳回晶片本身。解壓過程不會留下任何狀態，因此沒有需要清除的內容                                                                                                               |
 
 `Decompressor` 是 `decompress` 傳回的物件。
 
-| 呼叫或屬性 | 含義 |
-|:--|:--|
-| `read(count)` | 以 `bytes` 傳回接下來 `count` 個已解碼位元組 |
-| `take_byte()` | 以 `int` 傳回下一個已解碼位元組 |
+| 呼叫或屬性                   | 含義                                                                     |
+| :--------------------------- | :----------------------------------------------------------------------- |
+| `read(count)`                | 以 `bytes` 傳回接下來 `count` 個已解碼位元組                             |
+| `take_byte()`                | 以 `int` 傳回下一個已解碼位元組                                          |
 | `start(mode, offset, index)` | 以模式編號 `mode` 重新開始解壓同一來源，並清除所有上下文。傳回解壓器本身 |
-| `mode` | 模式編號，開始之前為 `None` |
-| `offset` | 解碼器將讀取的下一個來源位元組的索引 |
-| `held` | 在 64 位元組緩衝區中等待讀取的已解碼位元組數目 |
-| `contexts` | 32 個機率上下文，每個都是 `Context` |
-| `source` | 壓縮數據流，已複製為 `bytes` |
+| `mode`                       | 模式編號，開始之前為 `None`                                              |
+| `offset`                     | 解碼器將讀取的下一個來源位元組的索引                                     |
+| `held`                       | 在 64 位元組緩衝區中等待讀取的已解碼位元組數目                           |
+| `contexts`                   | 32 個機率上下文，每個都是 `Context`                                      |
+| `source`                     | 壓縮數據流，已複製為 `bytes`                                             |
 
 解碼器的輸入會循環。讀取超出 `source` 結尾時，會從第 0 個位元組繼續，因為參考實現也是這樣做的。
 
@@ -115,11 +115,11 @@ Empty a decompressor needs something to decompress
 
 ### 錯誤
 
-| 錯誤 | 引發時機 |
-|:--|:--|
+| 錯誤                        | 引發時機                                                                |
+| :-------------------------- | :---------------------------------------------------------------------- |
 | `spc7110.UnknownModelError` | `Chip` 沒有獲得型號，或獲得的名稱不對應任何晶片。訊息會列出可接受的名稱 |
-| `spc7110.UnknownMode` | 模式名稱、別名或編號不屬於這三種之一。訊息會列出三個名稱 |
-| `spc7110.Empty` | 來源為空 |
+| `spc7110.UnknownMode`       | 模式名稱、別名或編號不屬於這三種之一。訊息會列出三個名稱                |
+| `spc7110.Empty`             | 來源為空                                                                |
 
 這三種錯誤只在一處定義，即 [`spc7110/errors.py`](spc7110/errors.py)。
 
@@ -150,17 +150,17 @@ spc7120 is not a part this package covers; it has spc7110
 
 ### 模組內容
 
-| 名稱 | 內容 |
-|:--|:--|
-| `spc7110.MODELS` | 唯一的 `Model` 記錄，以標準名稱為鍵。`Model` 帶有 `name`、`aliases`、`modes`、`summary` 和 `build()` |
-| `spc7110.MODES` | 三個 `Mode` 記錄，以名稱為鍵 |
-| `spc7110.Mode` | 模式記錄：`number`、`name`、以每像素位元數表示的 `depth`、`aliases`、`summary`，以及用於開始一個 `Decompressor` 的 `build(source, offset=0, index=0)` |
-| `spc7110.mode_named(mode)` | 給定 `int` 編號，或給定字串形式的名稱或別名時，傳回對應的 `Mode`。以字串寫成的編號，例如 `"2"`，會引發 `UnknownMode` |
-| `spc7110.Decompressor(source)` | 解碼器本身，直接由數據流建立。在 `start` 指定模式之前，它不會產生任何輸出 |
-| `spc7110.Context` | 一個機率上下文：`index` 是它在演化表中的行，`invert` 是它目前視為較可能出現的符號 |
-| `spc7110.CONTEXTS` | 32，即上下文的數目 |
-| `spc7110.tables` | `EVOLUTION` 是 53 行機率、各符號之後的下一行及反轉旗標，`MODE2_CONTEXT` 是模式 2 的 32 個上下文轉移 |
-| `spc7110.__version__` | 已安裝的版本 |
+| 名稱                           | 內容                                                                                                                                                  |
+| :----------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `spc7110.MODELS`               | 唯一的 `Model` 記錄，以標準名稱為鍵。`Model` 帶有 `name`、`aliases`、`modes`、`summary` 和 `build()`                                                  |
+| `spc7110.MODES`                | 三個 `Mode` 記錄，以名稱為鍵                                                                                                                          |
+| `spc7110.Mode`                 | 模式記錄：`number`、`name`、以每像素位元數表示的 `depth`、`aliases`、`summary`，以及用於開始一個 `Decompressor` 的 `build(source, offset=0, index=0)` |
+| `spc7110.mode_named(mode)`     | 給定 `int` 編號，或給定字串形式的名稱或別名時，傳回對應的 `Mode`。以字串寫成的編號，例如 `"2"`，會引發 `UnknownMode`                                  |
+| `spc7110.Decompressor(source)` | 解碼器本身，直接由數據流建立。在 `start` 指定模式之前，它不會產生任何輸出                                                                             |
+| `spc7110.Context`              | 一個機率上下文：`index` 是它在演化表中的行，`invert` 是它目前視為較可能出現的符號                                                                     |
+| `spc7110.CONTEXTS`             | 32，即上下文的數目                                                                                                                                    |
+| `spc7110.tables`               | `EVOLUTION` 是 53 行機率、各符號之後的下一行及反轉旗標，`MODE2_CONTEXT` 是模式 2 的 32 個上下文轉移                                                   |
+| `spc7110.__version__`          | 已安裝的版本                                                                                                                                          |
 
 ```python
 import spc7110
@@ -194,11 +194,11 @@ MODE1 2bpp
 
 三種模式之下都是同一個算術解碼器。模式決定一個符號帶有多少位元，以及之後如何處理它。
 
-| 模式 | 名稱 | 產生 | 不同之處 |
-|:--|:--|:--|:--|
-| 0 | `1bpp` | 每像素一位元 | 上下文來自最近的幾次判定，因為只有兩種顏色 |
-| 1 | `2bpp` | 每像素兩位元 | 四種顏色的最近使用列表，因此最近用過的顏色所需位元較少 |
-| 2 | `4bpp` | 每像素四位元 | 相同的列表，但涵蓋十六種顏色，並且整個 16 位元組的圖塊會先緩衝，再交回 |
+| 模式 | 名稱   | 產生         | 不同之處                                                               |
+| :--- | :----- | :----------- | :--------------------------------------------------------------------- |
+| 0    | `1bpp` | 每像素一位元 | 上下文來自最近的幾次判定，因為只有兩種顏色                             |
+| 1    | `2bpp` | 每像素兩位元 | 四種顏色的最近使用列表，因此最近用過的顏色所需位元較少                 |
+| 2    | `4bpp` | 每像素四位元 | 相同的列表，但涵蓋十六種顏色，並且整個 16 位元組的圖塊會先緩衝，再交回 |
 
 解碼器中有兩處看似錯誤，其實不是。
 
@@ -221,13 +221,13 @@ python3 -m conformance.differential
 
 參考實現並未隨附在此。`conformance.build` 會按 [`conformance/pinned.json`](conformance/pinned.json) 中固定的提交取得 snes9x，在該固定記錄指定的兩條標記行之間，從其原始碼中截取解壓器，並以 `g++` 連同 [`conformance/ref/driver.cpp`](conformance/ref/driver.cpp) 編譯。若原始碼中的標記已移動，建置便會停止。建置成功時以 0 退出，編譯器失敗時以 1 退出，參數錯誤或取得失敗時以 2 退出。
 
-| 工具 | 參數 | 退出碼 |
-|:--|:--|:--|
-| `python3 -m conformance.build` | `--sources DIR`、`--output PATH`、`--pinned PATH`、`--driver-source PATH` | 0 已建置，1 編譯失敗，2 用法錯誤或取得失敗 |
-| `python3 -m conformance.differential` | `--seeds N`，預設 200，以及 `--driver PATH` | 0 全部一致，1 有任何分歧，2 沒有驅動程式或用法錯誤 |
-| `python3 -m conformance.cartridges` | 一個卡帶目錄和一個輸出目錄 | 0 已記錄，2 找不到任何內容或用法錯誤 |
-| `python3 -m conformance.against_cartridges` | 一個卡帶目錄、一個輸出目錄，以及 `--driver PATH` | 0 全部一致，1 有任何分歧，2 找不到任何內容、沒有驅動程式或用法錯誤 |
-| `python3 -m conformance.speed` | 無 | 0 每秒解碼不少於 10,000 位元組，1 低於此值 |
+| 工具                                        | 參數                                                                      | 退出碼                                                             |
+| :------------------------------------------ | :------------------------------------------------------------------------ | :----------------------------------------------------------------- |
+| `python3 -m conformance.build`              | `--sources DIR`、`--output PATH`、`--pinned PATH`、`--driver-source PATH` | 0 已建置，1 編譯失敗，2 用法錯誤或取得失敗                         |
+| `python3 -m conformance.differential`       | `--seeds N`，預設 200，以及 `--driver PATH`                               | 0 全部一致，1 有任何分歧，2 沒有驅動程式或用法錯誤                 |
+| `python3 -m conformance.cartridges`         | 一個卡帶目錄和一個輸出目錄                                                | 0 已記錄，2 找不到任何內容或用法錯誤                               |
+| `python3 -m conformance.against_cartridges` | 一個卡帶目錄、一個輸出目錄，以及 `--driver PATH`                          | 0 全部一致，1 有任何分歧，2 找不到任何內容、沒有驅動程式或用法錯誤 |
+| `python3 -m conformance.speed`              | 無                                                                        | 0 每秒解碼不少於 10,000 位元組，1 低於此值                         |
 
 每個生成的案例包含來自帶種子產生器的 8,192 個位元組、由種子選定的模式、隨機的起始偏移，以及在奇數種子時最多 63 個被捨棄的位元組。兩邊都以相同的三項設定解碼 512 個位元組。執行器會列印最先出現分歧的 5 個案例。
 
@@ -258,13 +258,13 @@ print(bytes(differential.replay(case)[:8]).hex(" "))
 
 ## 參與開發
 
-| 需要 | 位置 |
-|:--|:--|
-| 每項關卡檢查及其執行順序 | [CONTRIBUTING.md](CONTRIBUTING.md) |
-| 寫給程式編寫代理的同一份資料 | [AGENTS.md](AGENTS.md) |
-| 本儲存庫與同系列其他儲存庫共用的標準 | [FAMILY.md](FAMILY.md) |
-| 錯誤報告 | [GitHub Issues](https://github.com/gufranco/snes-spc7110-python/issues) |
-| 安全報告 | [SECURITY.md](SECURITY.md) |
+| 需要                                 | 位置                                                                    |
+| :----------------------------------- | :---------------------------------------------------------------------- |
+| 每項關卡檢查及其執行順序             | [CONTRIBUTING.md](CONTRIBUTING.md)                                      |
+| 寫給程式編寫代理的同一份資料         | [AGENTS.md](AGENTS.md)                                                  |
+| 本儲存庫與同系列其他儲存庫共用的標準 | [FAMILY.md](FAMILY.md)                                                  |
+| 錯誤報告                             | [GitHub Issues](https://github.com/gufranco/snes-spc7110-python/issues) |
+| 安全報告                             | [SECURITY.md](SECURITY.md)                                              |
 
 ```bash
 uvx ruff@0.16.3 format --check .
