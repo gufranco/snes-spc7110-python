@@ -81,6 +81,26 @@ the SPC7110. It is reached only through the three retail games that carry it.
 There is no test cartridge runner here. A test cartridge for the SPC7110 that
 appears goes in the record, by SHA-256, and gets one.
 
+## Files kept in `external/`
+
+Everything this member reads and may not ship sits in `external/`, which git
+ignores and Dropbox is told to leave alone, per FAMILY.md's "Where the files a
+member reads are kept". [`artifacts.manifest.json`](artifacts.manifest.json)
+names it by size, CRC32, MD5, SHA-1 and SHA-256:
+
+- `external/snes9x`, the reference sources, a sparse git checkout at the
+  commit [`conformance/pinned.json`](conformance/pinned.json) pins. A test
+  holds its commit to that record.
+
+```bash
+python3 -m conformance.external
+python3 -m conformance.external --describe external/<file>
+```
+
+The first says which are here, verified, missing or wrong. The second prints
+the manifest entry for a file being added, which gets its entry in the same
+change.
+
 ## Every gate, in the order to run them
 
 ```bash
@@ -208,6 +228,7 @@ conformance/
   family_*.test.py  the family standard, held to this repository, one topic a file
   family_member.py  what this member answers to them
   family_shared.py  what more than one of them reads
+  external.py       which files in external/ are here, verified, missing or wrong
   pinned.json       the reference, by commit and by source extract
   build.py          building the reference from that pin
   differential.py   200 streams across three modes, compared byte for byte
@@ -215,6 +236,8 @@ conformance/
   hardware.json     what this package asserts, and where each assertion comes from
   divergences.json  where sources part, and what would settle each
   speed.py          the throughput floor
+external/           the reference sources, never committed
+artifacts.manifest.json  every file in external/, by size and every digest
 ```
 
 ## Things that will bite you
