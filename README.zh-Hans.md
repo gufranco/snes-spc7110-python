@@ -8,7 +8,7 @@
 [![Release](https://img.shields.io/github/v/release/gufranco/snes-spc7110-python)](https://github.com/gufranco/snes-spc7110-python/releases)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-**3** 种模式，**200** 条生成的数据流共 **102,400** 字节、**619** 条卡带数据流共 **316,928** 字节与参考实现比对，**619** 条卡带数据流和 **231** 个寄存器驱动的用例经由寄存器读取并与 ares 比对，**0** 处不一致，**831** 个测试，**100%** 语句和分支覆盖率，无依赖
+**3** 种模式，**200** 条生成的数据流共 **102,400** 字节、**619** 条卡带数据流共 **316,928** 字节与参考实现比对，**619** 条卡带数据流和 **231** 个寄存器驱动的用例经由寄存器读取并与 ares 比对，**0** 处不一致，**833** 个测试，**100%** 语句和分支覆盖率，无依赖
 
 ```python
 import spc7110
