@@ -10,7 +10,7 @@
 [![openssf scorecard](https://img.shields.io/ossf-scorecard/github.com/gufranco/snes-spc7110-python?style=flat-square&label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/gufranco/snes-spc7110-python)
 [![license](https://img.shields.io/github/license/gufranco/snes-spc7110-python?style=flat-square&label=license)](LICENSE)
 
-**3** 种模式，**200** 条生成的数据流共 **102,400** 字节、**619** 条卡带数据流共 **316,928** 字节与参考实现比对，**619** 条卡带数据流和 **231** 个寄存器驱动的用例经由寄存器读取并与 ares 比对，**0** 处不一致，**833** 个测试，**100%** 语句和分支覆盖率，无依赖
+**3** 种模式，**200** 条生成的数据流共 **102,400** 字节、**619** 条卡带数据流共 **316,928** 字节与参考实现比对，**619** 条卡带数据流和 **231** 个寄存器驱动的用例经由寄存器读取并与 ares 比对，**0** 处不一致，**834** 个测试，**100%** 语句和分支覆盖率，无依赖
 
 ```python
 import spc7110

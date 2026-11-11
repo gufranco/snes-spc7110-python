@@ -10,7 +10,7 @@ SPC7110をPythonで実装したものです。3つの出力モードすべてを
 [![openssf scorecard](https://img.shields.io/ossf-scorecard/github.com/gufranco/snes-spc7110-python?style=flat-square&label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/gufranco/snes-spc7110-python)
 [![license](https://img.shields.io/github/license/gufranco/snes-spc7110-python?style=flat-square&label=license)](LICENSE)
 
-**3**モード、**102,400**バイトにわたる生成ストリーム**200**本と**316,928**バイトにわたるカートリッジのストリーム**619**本をリファレンスと比較、レジスタ経由で読んだカートリッジのストリーム**619**本とレジスタ駆動のケース**231**件をaresと比較、不一致**0**件、テスト**833**件、ステートメントとブランチのカバレッジ**100%**、依存パッケージなし
+**3**モード、**102,400**バイトにわたる生成ストリーム**200**本と**316,928**バイトにわたるカートリッジのストリーム**619**本をリファレンスと比較、レジスタ経由で読んだカートリッジのストリーム**619**本とレジスタ駆動のケース**231**件をaresと比較、不一致**0**件、テスト**834**件、ステートメントとブランチのカバレッジ**100%**、依存パッケージなし
 
 ```python
 import spc7110
