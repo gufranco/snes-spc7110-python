@@ -10,7 +10,7 @@ English | [日本語](README.ja.md) | [简体中文](README.zh-Hans.md) | [繁�
 [![openssf scorecard](https://img.shields.io/ossf-scorecard/github.com/gufranco/snes-spc7110-python?style=flat-square&label=openssf%20scorecard)](https://scorecard.dev/viewer/?uri=github.com/gufranco/snes-spc7110-python)
 [![license](https://img.shields.io/github/license/gufranco/snes-spc7110-python?style=flat-square&label=license)](LICENSE)
 
-**3** modes, **200** generated streams over **102,400** bytes and **619** cartridge streams over **316,928** bytes compared against the reference, **619** cartridge streams and **231** register-driven cases read through the registers against ares, **0** disagreements, **833** tests, **100%** statement and branch coverage, no dependencies
+**3** modes, **200** generated streams over **102,400** bytes and **619** cartridge streams over **316,928** bytes compared against the reference, **619** cartridge streams and **231** register-driven cases read through the registers against ares, **0** disagreements, **834** tests, **100%** statement and branch coverage, no dependencies
 
 ```python
 import spc7110
